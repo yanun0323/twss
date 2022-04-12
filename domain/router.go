@@ -8,4 +8,5 @@ type IRouter interface {
 	GetStocksOfToday(echo.Context) error
 	GetStocksTopPer(echo.Context) error
 	GetStocksTopVolume(echo.Context) error
+	GetLastOpenDay(echo.Context) error
 }

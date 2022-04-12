@@ -47,3 +47,11 @@ func (r *Router) GetStocksTopVolume(c echo.Context) error {
 	// TODO: implement me
 	return nil
 }
+
+func (r *Router) GetLastOpenDay(c echo.Context) error {
+	date, err := r.repo.GetLastOpenDay()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, "Failed to get last open day.")
+	}
+	return c.JSON(http.StatusOK, date)
+}

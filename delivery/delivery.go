@@ -20,4 +20,5 @@ func NewHandler(e *echo.Echo, router domain.IRouter) {
 	e.GET("/stock/today", handler.router.GetStocksOfToday)
 	e.GET("/stock/top/per", handler.router.GetStocksTopPer)
 	e.GET("/stock/top/volume", handler.router.GetStocksTopVolume)
+	e.GET("/lastopenday", handler.router.GetLastOpenDay)
 }
