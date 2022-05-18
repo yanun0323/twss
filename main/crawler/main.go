@@ -2,7 +2,7 @@ package main
 
 import (
 	"main/config"
-	"main/dao"
+	dao "main/repository"
 	"main/servers"
 )
 
@@ -15,8 +15,4 @@ func main() {
 	crawler := servers.NewCrawler(repo)
 	crawler.InitMigrate()
 	crawler.Run()
-}
-
-func Crawl() {
-	main()
 }
