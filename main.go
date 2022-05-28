@@ -7,7 +7,7 @@ import (
 	"main/domain"
 	"main/repository"
 	"main/servers"
-	"main/usecase"
+	"main/service"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,16 +19,16 @@ import (
 func main() {
 	config.Init()
 
+	e := echo.New()
+
 	db := repository.ConnectDB()
 	repo := repository.NewRepo(db)
-
 	CrawlData(repo)
 	ConvertData(repo)
 
-	router := usecase.NewRouter(repo)
-
-	e := echo.New()
-	delivery.NewHandler(e, router)
+	service := service.NewService(repo)
+	handler := delivery.NewHandler(service)
+	delivery.SetRouter(e, handler)
 
 	e.GET("/", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, "Taiwan Stock Server")
