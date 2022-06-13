@@ -2,17 +2,34 @@ package config
 
 import (
 	"fmt"
+	"main/model/mode"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
 
-func Init() {
+const (
+	TimeOffset = 6 * time.Hour
+)
+
+var Mode = mode.Server
+
+func Init(cfgPath, cfgName string) {
+	configName := os.Getenv("CONFIG_NAME")
+	if configName != "" {
+		cfgName = configName
+	}
+
+	m := os.Getenv("MODE")
+	Mode = mode.NewFromString(m)
+
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
-	viper.SetConfigName("config")
+	viper.SetConfigName(cfgName)
 	viper.SetConfigType("yml")
-	viper.AddConfigPath("./config")
+	viper.AddConfigPath(cfgPath)
 
 	err := viper.ReadInConfig()
 	if err != nil {

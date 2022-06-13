@@ -1,6 +1,8 @@
 package service
 
-import "main/domain"
+import (
+	"main/domain"
+)
 
 type Service struct {
 	Repo domain.IRepository

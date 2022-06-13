@@ -6,16 +6,18 @@ import (
 )
 
 type IRepository interface {
-	GetCrawlableDate() time.Time
-	Insert(interface{}) error
-	Create(string, interface{}) error
-	AutoMigrate(...interface{}) error
-	Migrate(string, interface{}) error
-	GetConvertableDate() (time.Time, bool)
-	GetRaw(time.Time) ([]byte, error)
-	GetStockHash() map[string]string
+	GetCrawlableDate(checkMode bool) time.Time
+
+	GetConvertibleDate(checkMode bool) (time.Time, error)
+	GetRaw(date time.Time) ([]byte, error)
 	GetLastOpenDay() (time.Time, error)
 
-	GetStock(string) (model.Stock, error)
+	GetStock(id string) (model.Stock, error)
 	GetStocksToday() ([]model.Stock, error)
+	GetStockHash() map[string]string
+
+	AutoMigrate(p ...interface{}) error
+	Migrate(table string, p interface{}) error
+	Insert(obj interface{}) error
+	InsertWithTableName(table string, obj interface{}) error
 }

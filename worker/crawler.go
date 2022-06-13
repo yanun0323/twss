@@ -1,9 +1,10 @@
-package servers
+package worker
 
 import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"main/config"
 	"main/domain"
 	"main/model"
 	"main/util"
@@ -11,14 +12,17 @@ import (
 	"time"
 )
 
+const waitSecond = 3 * time.Second
+
 type Crawler struct {
-	repo domain.IRepository
-	date time.Time
+	repo      domain.IRepository
+	date      time.Time
+	checkMode bool
 }
 
-func NewCrawler(repo domain.IRepository) *Crawler {
-	d := repo.GetCrawlableDate()
-	return &Crawler{repo: repo, date: d}
+func NewCrawler(repo domain.IRepository, checkMode bool) *Crawler {
+	d := repo.GetCrawlableDate(checkMode)
+	return &Crawler{repo: repo, date: d, checkMode: checkMode}
 }
 
 func (c *Crawler) InitMigrate() {
@@ -27,31 +31,36 @@ func (c *Crawler) InitMigrate() {
 
 func (c *Crawler) Run() {
 	for {
-		if c.date.After(time.Now().Local()) {
+		if c.date.Add(config.TimeOffset).After(time.Now().Local()) {
+			log.Printf("over time: %s", util.LogDate(c.date.Add(config.TimeOffset)))
 			break
 		}
 		log.Println(util.LogDate(c.date))
-		body := c.crawlPrice()
+		if c.checkMode {
+			log.Print("- checkMode")
+		}
+
+		body := c.crawlPrice(c.date)
 
 		if len(body) == 0 {
 			c.date = util.NextDate(c.date)
-			time.Sleep(2000 * time.Millisecond)
+			time.Sleep(waitSecond)
 			continue
 		}
 
-		err := c.repo.Insert(&model.Raw{Date: c.date, Body: body})
+		err := c.repo.Insert(model.Raw{Date: c.date, Body: body})
 		if err != nil {
 			log.Println(err)
 		}
 
 		c.date = util.NextDate(c.date)
-		time.Sleep(2000 * time.Millisecond)
+		time.Sleep(waitSecond)
 	}
 	log.Println("Crawl complete")
 }
 
-func (c *Crawler) crawlPrice() []byte {
-	date := util.FormatDate(c.date)
+func (c *Crawler) crawlPrice(target time.Time) []byte {
+	date := util.FormatDate(target)
 	url := fmt.Sprintf("https://www.twse.com.tw/exchangeReport/MI_INDEX?response=json&date=%s&type=ALLBUT0999", date)
 	log.Println(url)
 
@@ -72,7 +81,7 @@ func (c *Crawler) crawlPrice() []byte {
 		log.Println("HTML body read error")
 		return []byte{}
 	}
-	log.Printf("Get HTML. %s", util.LogDate(c.date))
+	log.Printf("Get HTML. %s", util.LogDate(target))
 
 	return bytes
 }

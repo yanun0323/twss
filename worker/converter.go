@@ -1,8 +1,9 @@
-package servers
+package worker
 
 import (
 	"encoding/json"
 	"log"
+	"main/config"
 	"main/domain"
 	"main/model"
 	"main/util"
@@ -16,11 +17,17 @@ type Converter struct {
 	repo         domain.IRepository
 	date         time.Time
 	stockHash    chan map[string]string
-	maxGoroutine chan int8
+	parseChannel chan int8
+	checkMode    bool
 }
 
-func NewConverter(repo domain.IRepository) *Converter {
-	return &Converter{repo: repo}
+func NewConverter(repo domain.IRepository, checkMode bool) *Converter {
+	return &Converter{
+		repo:         repo,
+		stockHash:    make(chan map[string]string, 1),
+		parseChannel: make(chan int8, maxGoroutine),
+		checkMode:    checkMode,
+	}
 }
 func (c *Converter) InitMigrate() {
 	err := c.repo.AutoMigrate(&model.OpenDays{}, &model.StockList{})
@@ -30,19 +37,23 @@ func (c *Converter) InitMigrate() {
 }
 
 func (c *Converter) Run() {
-
-	c.stockHash = make(chan map[string]string, 1)
-	c.maxGoroutine = make(chan int8, maxGoroutine)
-	date, ok := c.repo.GetConvertableDate()
-	if !ok {
-		log.Println("Failed to get convertable date")
+	date, err := c.repo.GetConvertibleDate(c.checkMode)
+	if err != nil {
+		log.Println(err)
 		return
 	}
 
 	c.date = date
 	c.stockHash <- c.repo.GetStockHash()
 	for {
+		if c.date.Add(config.TimeOffset).After(time.Now().Local()) {
+			log.Printf("over time: %s", util.LogDate(c.date.Add(config.TimeOffset)))
+			return
+		}
 		log.Println(util.LogDate(c.date))
+		if c.checkMode {
+			log.Print("- checkMode")
+		}
 
 		body, err := c.repo.GetRaw(c.date)
 		if err != nil {
@@ -52,7 +63,7 @@ func (c *Converter) Run() {
 		var raw model.RawJson
 		_ = json.Unmarshal(body, &raw)
 		if raw.State != "OK" {
-			c.repo.Insert(&model.OpenDays{Date: c.date, State: false})
+			c.repo.Insert(model.OpenDays{Date: c.date, State: false})
 			c.date = util.NextDate(c.date)
 			continue
 		}
@@ -71,19 +82,19 @@ func (c *Converter) Run() {
 			go c.ParseService(&wg, d)
 		}
 		wg.Wait()
-		err = c.repo.Insert(&model.OpenDays{Date: c.date, State: true})
+		err = c.repo.Insert(model.OpenDays{Date: c.date, State: true})
 		if err != nil {
-			log.Printf("Failed to insert open day %s %s", util.LogDate(c.date), err)
+			log.Printf("failed to insert open day %s %s", util.LogDate(c.date), err)
 		}
 		c.date = util.NextDate(c.date)
-		log.Println("Complete")
+		log.Println("complete")
 		// return
 	}
 }
 
 func (c *Converter) ParseService(wg *sync.WaitGroup, d []string) {
 	defer wg.Done()
-	c.maxGoroutine <- 0
+	c.parseChannel <- 0
 	id := d[0]
 	name := d[1]
 	table := util.StockTable(id)
@@ -94,7 +105,7 @@ func (c *Converter) ParseService(wg *sync.WaitGroup, d []string) {
 		hash[id] = name
 		c.repo.Migrate(table, &model.Deal{})
 		c.repo.Insert(
-			&model.StockList{
+			model.StockList{
 				StockID:   id,
 				StockName: name,
 			},
@@ -114,10 +125,10 @@ func (c *Converter) ParseService(wg *sync.WaitGroup, d []string) {
 		Per:         d[15],
 	}
 
-	err := c.repo.Create(table, &deal)
+	err := c.repo.InsertWithTableName(table, deal)
 	if err != nil {
 		log.Printf("Failed to insert %s %s %s", id, d[1], err)
 	}
 
-	<-c.maxGoroutine
+	<-c.parseChannel
 }

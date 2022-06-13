@@ -5,9 +5,10 @@ import (
 	"main/config"
 	"main/delivery"
 	"main/domain"
+	"main/model/mode"
 	"main/repository"
-	"main/servers"
 	"main/service"
+	"main/worker"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,14 +18,19 @@ import (
 )
 
 func main() {
-	config.Init()
+	config.Init("./config", "config")
 
 	e := echo.New()
 
 	db := repository.ConnectDB()
 	repo := repository.NewRepo(db)
-	CrawlData(repo)
-	ConvertData(repo)
+
+	mode.RunTask(config.Mode, mode.Crawl, CrawlData, repo)
+	mode.RunTask(config.Mode, mode.Convert, ConvertData, repo)
+
+	if config.Mode != mode.Server {
+		return
+	}
 
 	service := service.NewService(repo)
 	handler := delivery.NewHandler(service)
@@ -42,14 +48,14 @@ func main() {
 	log.Println("shutdown process start")
 }
 
-func CrawlData(repo domain.IRepository) {
-	crawler := servers.NewCrawler(repo)
+func CrawlData(repo domain.IRepository, checkMode bool) {
+	crawler := worker.NewCrawler(repo, checkMode)
 	crawler.InitMigrate()
 	crawler.Run()
 }
 
-func ConvertData(repo domain.IRepository) {
-	converter := servers.NewConverter(repo)
+func ConvertData(repo domain.IRepository, checkMode bool) {
+	converter := worker.NewConverter(repo, checkMode)
 	converter.InitMigrate()
 	converter.Run()
 }
