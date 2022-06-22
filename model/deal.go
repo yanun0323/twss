@@ -12,7 +12,6 @@ type Deal struct {
 	Max         string    `gorm:"size:255"`
 	Min         string    `gorm:"size:255"`
 	End         string    `gorm:"size:255"`
-	Grade       string    `gorm:"size:30"`
 	Spread      string    `gorm:"size:30"`
 	Per         string    `gorm:"size:255"`
 }

@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"main/config"
 	"main/domain"
 	"main/model"
+	"main/setting"
 	"main/util"
 	"net/http"
 	"time"
 )
 
-const waitSecond = 3 * time.Second
+const _WAIT_SECOND = 3 * time.Second
 
 type Crawler struct {
 	repo      domain.IRepository
@@ -31,8 +31,8 @@ func (c *Crawler) InitMigrate() {
 
 func (c *Crawler) Run() {
 	for {
-		if c.date.Add(config.TimeOffset).After(time.Now().Local()) {
-			log.Printf("over time: %s", util.LogDate(c.date.Add(config.TimeOffset)))
+		if c.date.Add(setting.Time_Offset).After(time.Now().Local()) {
+			log.Printf("over time: %s", util.LogDate(c.date.Add(setting.Time_Offset)))
 			break
 		}
 		log.Println(util.LogDate(c.date))
@@ -44,7 +44,7 @@ func (c *Crawler) Run() {
 
 		if len(body) == 0 {
 			c.date = util.NextDate(c.date)
-			time.Sleep(waitSecond)
+			time.Sleep(_WAIT_SECOND)
 			continue
 		}
 
@@ -54,11 +54,10 @@ func (c *Crawler) Run() {
 		}
 
 		c.date = util.NextDate(c.date)
-		time.Sleep(waitSecond)
+		time.Sleep(_WAIT_SECOND)
 	}
 	log.Println("Crawl complete")
 }
-
 func (c *Crawler) crawlPrice(target time.Time) []byte {
 	date := util.FormatDate(target)
 	url := fmt.Sprintf("https://www.twse.com.tw/exchangeReport/MI_INDEX?response=json&date=%s&type=ALLBUT0999", date)

@@ -2,16 +2,18 @@ package worker
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
-	"main/config"
 	"main/domain"
 	"main/model"
+	"main/setting"
 	"main/util"
+	"strings"
 	"sync"
 	"time"
 )
 
-const maxGoroutine = 100
+const _MAX_GOROUTINE = 100
 
 type Converter struct {
 	repo         domain.IRepository
@@ -25,7 +27,7 @@ func NewConverter(repo domain.IRepository, checkMode bool) *Converter {
 	return &Converter{
 		repo:         repo,
 		stockHash:    make(chan map[string]string, 1),
-		parseChannel: make(chan int8, maxGoroutine),
+		parseChannel: make(chan int8, _MAX_GOROUTINE),
 		checkMode:    checkMode,
 	}
 }
@@ -37,17 +39,13 @@ func (c *Converter) InitMigrate() {
 }
 
 func (c *Converter) Run() {
-	date, err := c.repo.GetConvertibleDate(c.checkMode)
-	if err != nil {
-		log.Println(err)
-		return
-	}
+	date := c.repo.GetConvertibleDate(c.checkMode)
 
 	c.date = date
 	c.stockHash <- c.repo.GetStockHash()
 	for {
-		if c.date.Add(config.TimeOffset).After(time.Now().Local()) {
-			log.Printf("over time: %s", util.LogDate(c.date.Add(config.TimeOffset)))
+		if c.date.Add(setting.Time_Offset).After(time.Now().Local()) {
+			log.Printf("over time: %s", util.LogDate(c.date.Add(setting.Time_Offset)))
 			return
 		}
 		log.Println(util.LogDate(c.date))
@@ -112,6 +110,13 @@ func (c *Converter) ParseService(wg *sync.WaitGroup, d []string) {
 		)
 	}
 	c.stockHash <- hash
+	prefix := ""
+	if strings.Contains(d[9], "green") {
+		prefix = "-"
+	}
+	if strings.Contains(d[9], "red") {
+		prefix = "+"
+	}
 	deal := &model.Deal{
 		Date:        c.date,
 		Volume:      d[2],
@@ -120,8 +125,7 @@ func (c *Converter) ParseService(wg *sync.WaitGroup, d []string) {
 		Max:         d[6],
 		Min:         d[7],
 		End:         d[8],
-		Grade:       d[9],
-		Spread:      d[10],
+		Spread:      fmt.Sprintf("%s%s", prefix, d[10]),
 		Per:         d[15],
 	}
 

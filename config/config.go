@@ -5,13 +5,8 @@ import (
 	"main/model/mode"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/spf13/viper"
-)
-
-const (
-	TimeOffset = 6 * time.Hour
 )
 
 var Mode = mode.Server

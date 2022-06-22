@@ -8,7 +8,7 @@ import (
 type IRepository interface {
 	GetCrawlableDate(checkMode bool) time.Time
 
-	GetConvertibleDate(checkMode bool) (time.Time, error)
+	GetConvertibleDate(checkMode bool) time.Time
 	GetRaw(date time.Time) ([]byte, error)
 	GetLastOpenDay() (time.Time, error)
 

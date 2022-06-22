@@ -15,7 +15,9 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-const maxConnection = 50
+const (
+	_MAX_CONNECTION = 50
+)
 
 func ConnectDB() *gorm.DB {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
@@ -42,8 +44,8 @@ func ConnectDB() *gorm.DB {
 			continue
 		}
 		sql, err := db.DB()
-		sql.SetMaxOpenConns(maxConnection)
-		sql.SetMaxIdleConns(maxConnection)
+		sql.SetMaxOpenConns(_MAX_CONNECTION)
+		sql.SetMaxIdleConns(_MAX_CONNECTION)
 		sql.SetConnMaxIdleTime(time.Second)
 		sql.SetConnMaxLifetime(time.Second)
 

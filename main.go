@@ -40,7 +40,7 @@ func main() {
 		return c.JSON(http.StatusOK, "Taiwan Stock Server")
 	})
 
-	e.Logger.Fatal(e.Start(":8080"))
+	e.Logger.Fatal(e.Start(":80"))
 
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)

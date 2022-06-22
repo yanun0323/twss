@@ -11,6 +11,10 @@ import (
 	"gorm.io/gorm"
 )
 
+var (
+	_BEGIN_DATE_PRICE = time.Date(2004, 2, 11, 0, 0, 0, 0, time.Local)
+)
+
 type MysqlDao struct {
 	db *gorm.DB
 }
@@ -27,7 +31,7 @@ func (r *MysqlDao) GetCrawlableDate(checkMode bool) time.Time {
 	raw := model.Raw{}
 	err := r.db.Last(&raw).Error
 	if err != nil {
-		return time.Date(2004, 2, 11, 0, 0, 0, 0, time.Local)
+		return _BEGIN_DATE_PRICE
 	}
 
 	return raw.Date.Add(24 * time.Hour)
@@ -51,18 +55,18 @@ func (r *MysqlDao) Migrate(table string, obj interface{}) error {
 	return r.db.Table(table).AutoMigrate(obj)
 }
 
-func (r *MysqlDao) GetConvertibleDate(checkMode bool) (time.Time, error) {
+func (r *MysqlDao) GetConvertibleDate(checkMode bool) time.Time {
 	if checkMode {
-		return time.Date(2022, 3, 23, 0, 0, 0, 0, time.Local), nil
+		return time.Date(2022, 3, 23, 0, 0, 0, 0, time.Local)
 	}
 	open := model.OpenDays{}
 
 	err := r.db.Last(&open).Error
 	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to get convertible date")
+		return _BEGIN_DATE_PRICE
 	}
 
-	return open.Date.Add(24 * time.Hour), nil
+	return open.Date.Add(24 * time.Hour)
 }
 
 /* Goroutine handled */
@@ -138,7 +142,6 @@ func (r *MysqlDao) GetStocksToday() ([]model.Stock, error) {
 			Max:         d[6],
 			Min:         d[7],
 			End:         d[8],
-			Grade:       d[9],
 			Spread:      d[10],
 			Per:         d[15],
 		}
