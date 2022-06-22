@@ -1,5 +1,5 @@
-# TWSS
-自動抓取台股資料 API Server
+# TWSS (Taiwan Stock Server)
+自動抓取台股資料的 API Server
 
 ## require
 - go 1.18+
