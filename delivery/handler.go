@@ -6,6 +6,7 @@ import (
 	"main/domain"
 	"main/model"
 	"main/model/compare"
+	"main/pkg/response"
 	"main/service"
 	"net/http"
 	"sort"
@@ -26,25 +27,29 @@ func (r *Handler) GetStock(c echo.Context) error {
 	id := c.Param("id")
 	if id == "" {
 		err := errors.New("stock id can't be empty.")
-		return c.JSON(http.StatusNotFound, ErrorResponse(err))
+		return c.JSON(http.StatusNotFound, response.Error(err))
 	}
 	stock, err := r.svc.Repo.GetStock(id)
 	if err != nil {
-		return c.JSON(http.StatusOK, ErrorResponse(err))
+		return c.JSON(http.StatusOK, response.Error(err))
 	}
 
 	return c.JSON(http.StatusOK, stock)
 }
 func (r *Handler) GetStockList(c echo.Context) error {
 	hash := r.svc.Repo.GetStockHash()
-	return c.JSON(http.StatusOK, hash)
+	list := make([]model.StockList, 0, len(hash))
+	for k, v := range hash {
+		list = append(list, model.StockList{StockID: k, StockName: v})
+	}
+	return c.JSON(http.StatusOK, list)
 }
 
 func (r *Handler) GetStocksOfToday(c echo.Context) error {
 	stocks, err := r.svc.Repo.GetStocksToday()
 	if err != nil {
 		err := errors.New("failed to get stocks of today.")
-		return c.JSON(http.StatusInternalServerError, ErrorResponse(err))
+		return c.JSON(http.StatusInternalServerError, response.Error(err))
 	}
 	return c.JSON(http.StatusOK, stocks)
 }
@@ -89,7 +94,7 @@ func (r *Handler) GetLastOpenDay(c echo.Context) error {
 	date, err := r.svc.Repo.GetLastOpenDay()
 	if err != nil {
 		err := errors.New("failed to get stocks of today.")
-		return c.JSON(http.StatusInternalServerError, ErrorResponse(err))
+		return c.JSON(http.StatusInternalServerError, response.Error(err))
 	}
 	return c.JSON(http.StatusOK, date)
 }

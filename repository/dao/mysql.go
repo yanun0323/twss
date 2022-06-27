@@ -134,17 +134,8 @@ func (r *MysqlDao) GetStocksToday() ([]model.Stock, error) {
 
 	stocks := make([]model.Stock, 0, len(rawJson.Data9))
 	for _, d := range rawJson.Data9 {
-		deal := model.Deal{
-			Date:        date,
-			Volume:      d[2],
-			VolumeMoney: d[3],
-			Start:       d[5],
-			Max:         d[6],
-			Min:         d[7],
-			End:         d[8],
-			Spread:      d[10],
-			Per:         d[15],
-		}
+
+		deal := model.NewDealFromDataString(d, date)
 		stock := model.NewStock()
 		stock.ID = d[0]
 		stock.Name = d[1]
