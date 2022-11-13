@@ -12,12 +12,19 @@ const (
 	_REQUEST_RETRY_TIMES     = 3
 )
 
+var (
+	_DEFAULT_START_DATE = time.Date(2010, time.January, 1, 0, 0, 0, 0, time.Local)
+)
+
 func (svc Service) CrawlDailyRawData() {
 	last, err := svc.repo.GetLastRaw()
 	if err != nil {
-		svc.l.Errorf("failed to get last raw, %+v", err)
-		return
+		svc.l.Warnf("failed to get last raw, %+v", err)
+		last = model.Raw{
+			Date: _DEFAULT_START_DATE,
+		}
 	}
+
 	date := last.Date.Add(24 * time.Hour)
 
 	now := time.Now().Local().Add(-18 * time.Hour) /* turn every 18:00 into 00:00 to crawl data after 18:00 every day */
