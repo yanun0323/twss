@@ -11,9 +11,15 @@ type MysqlDao struct {
 }
 
 func New(db *gorm.DB) MysqlDao {
-	return MysqlDao{
+	dao := MysqlDao{
 		db: db,
 	}
+	dao.Migrate()
+	return dao
+}
+
+func (dao MysqlDao) Migrate() {
+	_ = dao.db.AutoMigrate(model.Raw{})
 }
 
 func (dao MysqlDao) GetLastRaw() (model.Raw, error) {
