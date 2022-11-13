@@ -1,12 +1,19 @@
 package domain
 
-import "stocker/internal/model"
+import (
+	"stocker/internal/model"
+	"time"
+)
 
 type Repository interface {
 	DBRepository
 }
 
 type DBRepository interface {
-	GetLastRaw() (model.DailyRaw, error)
-	InsertRaw(raw model.DailyRaw) error
+	ListDailyRaws(from, to time.Time) ([]model.DailyRaw, error)
+	ListAllDailyRaws() ([]model.DailyRaw, error)
+	GetLastDailyRaw() (model.DailyRaw, error)
+	InsertDailyRaw(raw model.DailyRaw) error
+
+	InsertDailyStock(stock model.DailyStock) error
 }

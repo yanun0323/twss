@@ -17,9 +17,9 @@ var (
 )
 
 func (svc Service) CrawlDailyRawData() {
-	last, err := svc.repo.GetLastRaw()
+	last, err := svc.repo.GetLastDailyRaw()
 	if err != nil {
-		svc.l.Warnf("failed to get last raw, %+v", err)
+		svc.l.Warnf("failed to get last daily raw, %+v", err)
 		last = model.DailyRaw{
 			Date: _DEFAULT_START_DATE,
 		}
@@ -29,7 +29,7 @@ func (svc Service) CrawlDailyRawData() {
 
 	now := time.Now().Local().Add(-18 * time.Hour) /* turn every 18:00 into 00:00 to crawl data after 18:00 every day */
 	if date.Before(now) {
-		svc.l.Info("start crawl daily raw data, last raw date: ", util.LogDate(last.Date))
+		svc.l.Info("start crawl daily raw data, last daily raw date: ", util.LogDate(last.Date))
 	}
 	svc.l.Debug("now ", now)
 	for ; date.Before(now); util.NextDay(&date) {
@@ -41,7 +41,7 @@ func (svc Service) CrawlDailyRawData() {
 			svc.l.Errorf("crawl failed, retry in 3 second, %+v", err)
 		}
 	}
-	svc.l.Info("all raw data is update to date")
+	svc.l.Info("all daily raw data is update to date")
 }
 
 func (svc Service) crawl(date time.Time) error {
@@ -56,10 +56,10 @@ func (svc Service) crawl(date time.Time) error {
 
 	raw := model.DailyRaw{
 		Date: date,
-		Body: string(body),
+		Body: body,
 	}
 
-	if err := svc.repo.InsertRaw(raw); err != nil {
+	if err := svc.repo.InsertDailyRaw(raw); err != nil {
 		return err
 	}
 	svc.l.Infof("crawl success %s, data size: %d", logDate, len(body))

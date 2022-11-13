@@ -19,6 +19,7 @@ func Run() {
 	APIServer(ctx, svc)
 
 	svc.CrawlDailyRawData()
+	svc.ConvertDailyRawData()
 
 	/* Graceful shutdown */
 	sigterm := make(chan os.Signal, 1)

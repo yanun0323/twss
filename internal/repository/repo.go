@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	_MAX_CONNECTION          = 50
+	_MAX_CONNECTION          = 30
 	_RECONNECT_TIME_INTERVAL = 5 * time.Second
 )
 
