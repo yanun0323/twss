@@ -18,7 +18,7 @@ func Run() {
 	CronJob(ctx, svc)
 	APIServer(ctx, svc)
 
-	/* Graceful shotdown */
+	/* Graceful shutdown */
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
 	<-sigterm

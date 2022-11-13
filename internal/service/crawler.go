@@ -12,7 +12,7 @@ const (
 	_REQUEST_RETRY_TIMES     = 3
 )
 
-func (svc Service) CrawlRawDaily() {
+func (svc Service) CrawlDailyRawData() {
 	last, err := svc.repo.GetLastRaw()
 	if err != nil {
 		svc.l.Errorf("failed to get last raw, %+v", err)

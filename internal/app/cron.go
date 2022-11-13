@@ -14,7 +14,7 @@ func CronJob(ctx context.Context, svc service.Service) {
 	{
 		interval := "TZ=Asia/Taipei 30 0 * * * *"
 		_, err := c.AddFunc(interval, func() {
-			svc.CrawlRawDaily()
+			svc.CrawlDailyRawData()
 		})
 		if err != nil {
 			l.Errorf("add daily raw data crawl cron job failed, %+v", err)
