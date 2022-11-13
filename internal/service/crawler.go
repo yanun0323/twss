@@ -20,7 +20,7 @@ func (svc Service) CrawlDailyRawData() {
 	last, err := svc.repo.GetLastRaw()
 	if err != nil {
 		svc.l.Warnf("failed to get last raw, %+v", err)
-		last = model.Raw{
+		last = model.DailyRaw{
 			Date: _DEFAULT_START_DATE,
 		}
 	}
@@ -54,7 +54,7 @@ func (svc Service) crawl(date time.Time) error {
 		return err
 	}
 
-	raw := model.Raw{
+	raw := model.DailyRaw{
 		Date: date,
 		Body: string(body),
 	}

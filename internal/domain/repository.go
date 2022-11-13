@@ -7,6 +7,6 @@ type Repository interface {
 }
 
 type DBRepository interface {
-	GetLastRaw() (model.Raw, error)
-	InsertRaw(raw model.Raw) error
+	GetLastRaw() (model.DailyRaw, error)
+	InsertRaw(raw model.DailyRaw) error
 }

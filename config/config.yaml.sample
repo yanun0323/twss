@@ -1,9 +1,9 @@
 # Local
 mysql:
-  username: "" 
+  username: "root" 
   password: ""
   host: "127.0.0.1"
   port: 3306
-  database: ""
+  database: "local"
   
 server.port: 8001

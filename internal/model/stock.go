@@ -2,16 +2,16 @@ package model
 
 import "time"
 
-type Raw struct {
+type DailyRaw struct {
 	Date time.Time `gorm:"column:date;primaryKey;not null"`
 	Body string    `gorm:"column:body"`
 }
 
-func (Raw) TableName() string {
-	return "price_raw_body"
+func (DailyRaw) TableName() string {
+	return "daily_raw"
 }
 
-type RawDaily struct {
+type Daily struct {
 	Stat   string     `json:"stat"`
 	Date   string     `json:"date"`
 	Title  string     `json:"title"`
@@ -20,10 +20,10 @@ type RawDaily struct {
 	Notes  []string   `json:"notes"`
 }
 
-func (raw RawDaily) ParseStocks() []StockDaily {
-	sd := make([]StockDaily, 0, len(raw.Data))
+func (raw Daily) ParseStock() []DailyStock {
+	sd := make([]DailyStock, 0, len(raw.Data))
 	for _, s := range raw.Data {
-		sd = append(sd, StockDaily{
+		sd = append(sd, DailyStock{
 			ID:           s[0],
 			Name:         s[1],
 			TradeShare:   s[2],
@@ -40,7 +40,7 @@ func (raw RawDaily) ParseStocks() []StockDaily {
 }
 
 // "證券代號","證券名稱","成交股數","成交金額","開盤價","最高價","最低價","收盤價","漲跌價差","成交筆數"
-type StockDaily struct {
+type DailyStock struct {
 	ID, Name                                         string
 	TradeShare, TradeMoney                           string
 	PriceOpen, PriceLowest, PriceHighest, PriceClose string

@@ -19,19 +19,19 @@ func New(db *gorm.DB) MysqlDao {
 }
 
 func (dao MysqlDao) Migrate() {
-	_ = dao.db.AutoMigrate(model.Raw{})
+	_ = dao.db.AutoMigrate(model.DailyRaw{})
 }
 
-func (dao MysqlDao) GetLastRaw() (model.Raw, error) {
-	raw := model.Raw{}
+func (dao MysqlDao) GetLastRaw() (model.DailyRaw, error) {
+	raw := model.DailyRaw{}
 	result := dao.db.Table(raw.TableName()).Last(&raw)
 	if result.Error != nil {
-		return model.Raw{}, result.Error
+		return model.DailyRaw{}, result.Error
 	}
 	return raw, nil
 }
 
-func (dao MysqlDao) InsertRaw(raw model.Raw) error {
+func (dao MysqlDao) InsertRaw(raw model.DailyRaw) error {
 	result := dao.db.Table(raw.TableName()).Create(raw)
 	if result.Error != nil {
 		return result.Error
