@@ -12,18 +12,22 @@ import (
 )
 
 func Run() {
+	mode := os.Getenv("MODE")
 	ctx := context.Background()
 	svc := service.New(ctx, repository.New(ctx))
-
-	CronJob(ctx, svc)
-	APIServer(ctx, svc)
+	if mode == "server" {
+		CronJob(ctx, svc)
+		APIServer(ctx, svc)
+	}
 
 	svc.CrawlDailyRawData()
-	svc.ConvertDailyRawData()
+	// svc.ConvertDailyRawData()
 
-	/* Graceful shutdown */
-	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
-	<-sigterm
-	logs.Get(ctx).Info("shutdown process start")
+	if mode == "server" {
+		/* Graceful shutdown */
+		sigterm := make(chan os.Signal, 1)
+		signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
+		<-sigterm
+		logs.Get(ctx).Info("shutdown process start")
+	}
 }
