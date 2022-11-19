@@ -15,10 +15,12 @@ func APIServer(ctx context.Context, svc service.Service) {
 	l := logs.Get(ctx)
 	e := echo.New()
 
-	public := e.Group("/public")
-	public.GET("/healthz", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, util.NewMsgResponse("OK"))
+	api := e.Group("/api", DefaultMiddleware(ctx)...)
+	api.GET("/healthz", func(c echo.Context) error {
+		l.Infof("[%s] health check succeed", c.RealIP())
+		return c.JSON(http.StatusOK, util.NewMsgResponse("health check succeed :)"))
 	})
+	api.GET("/daily", svc.RawDailyAPI)
 
 	port := ":" + viper.GetString("server.port")
 	go e.Start(port)

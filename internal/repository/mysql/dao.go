@@ -45,6 +45,15 @@ func (dao MysqlDao) ListAllDailyRaws() ([]model.DailyRaw, error) {
 	return raws, nil
 }
 
+func (dao MysqlDao) GetDailyRaw(date time.Time) (model.DailyRaw, error) {
+	raw := model.DailyRaw{}
+	result := dao.db.First(&raw, date)
+	if result.Error != nil {
+		return model.DailyRaw{}, result.Error
+	}
+	return raw, nil
+}
+
 func (dao MysqlDao) GetLastDailyRaw() (model.DailyRaw, error) {
 	raw := model.DailyRaw{}
 	result := dao.db.Last(&raw)

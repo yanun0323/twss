@@ -1,5 +1,7 @@
 package util
 
+import "fmt"
+
 const (
 	_STATUS_OK   = "OK"
 	_STATUS_FAIL = "FAIL"
@@ -19,11 +21,17 @@ func NewMsgResponse(msg string) Response {
 	}
 }
 
-func NewErrorResponse(msg, err string) Response {
+func NewErrorResponse(msg string, err error) Response {
+	if err != nil {
+		return Response{
+			Status: _STATUS_FAIL,
+			Msg:    msg,
+			Error:  fmt.Sprintf("%s", err),
+		}
+	}
 	return Response{
 		Status: _STATUS_FAIL,
 		Msg:    msg,
-		Error:  err,
 	}
 }
 
