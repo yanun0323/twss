@@ -24,7 +24,7 @@ type Repo struct {
 
 func New(ctx context.Context) domain.Repository {
 	return &Repo{
-		MysqlDao: mysql.New(connectDB(ctx)),
+		MysqlDao: mysql.New(ctx, connectDB(ctx)),
 	}
 }
 

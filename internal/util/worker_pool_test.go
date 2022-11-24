@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -15,7 +14,6 @@ func TestWorkerPool(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		func(num int) {
 			wp.Push(func() {
-				fmt.Println(num)
 				x++
 			})
 		}(i)

@@ -1,19 +1,24 @@
 package mysql
 
 import (
+	"context"
+	"errors"
 	"stocker/internal/model"
 	"time"
 
+	"github.com/yanun0323/pkg/logs"
 	"gorm.io/gorm"
 )
 
 type MysqlDao struct {
-	db *gorm.DB
+	db  *gorm.DB
+	ctx context.Context
 }
 
-func New(db *gorm.DB) MysqlDao {
+func New(ctx context.Context, db *gorm.DB) MysqlDao {
 	dao := MysqlDao{
-		db: db,
+		db:  db,
+		ctx: ctx,
 	}
 	dao.AutoMigrate()
 	return dao
@@ -64,8 +69,13 @@ func (dao MysqlDao) GetLastDailyRaw() (model.DailyRaw, error) {
 }
 
 func (dao MysqlDao) InsertDailyRaw(raw model.DailyRaw) error {
-	result := dao.db.Create(raw)
-	if result.Error != nil {
+	err := dao.db.Where("date = ?", raw.Date).Error
+	if !errors.Is(gorm.ErrRecordNotFound, err) {
+		logs.Get(dao.ctx).Debug("insert daily raw, data exist")
+		return nil
+	}
+
+	if result := dao.db.Create(raw); result.Error != nil {
 		return result.Error
 	}
 	return nil
@@ -74,6 +84,12 @@ func (dao MysqlDao) InsertDailyRaw(raw model.DailyRaw) error {
 func (dao MysqlDao) InsertDailyStock(stock model.DailyStock) error {
 	table := stock.TableName()
 	dao.Migrate(table, stock)
+
+	err := dao.db.Where("date = ?", stock.Date).Error
+	if !errors.Is(gorm.ErrRecordNotFound, err) {
+		logs.Get(dao.ctx).Debug("insert daily stock, data exist")
+		return nil
+	}
 
 	result := dao.db.Table(table).Create(stock)
 	if result.Error != nil {
