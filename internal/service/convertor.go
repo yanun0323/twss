@@ -8,20 +8,35 @@ import (
 )
 
 func (svc Service) ConvertDailyRawData() {
-	raws, err := svc.repo.ListAllDailyRaws()
+	svc.l.Info("start daily raw data convert")
+	stockMap, err := svc.repo.GetStockMap()
 	if err != nil {
-		svc.l.Errorf("list all daily raws failed, %+v", err)
+		svc.l.Errorf("get stock map failed, %+v", err)
 		return
 	}
 
-	svc.l.Infof("start convert daily raw data, daily raws amount: %d", len(raws))
+	date, err := svc.repo.GetLastOpenDate()
+	if err != nil {
+		svc.l.Errorf("get stock map failed, %+v", err)
+		return
+	}
+	date = date.Add(24 * time.Hour)
 
+	stockMapChan := make(chan model.StockMap, 1)
+	stockMapChan <- stockMap
+
+	raws, err := svc.repo.ListDailyRaws(date, time.Now())
+	if err != nil {
+		svc.l.Errorf("list daily raws failed, %+v", err)
+		return
+	}
 	wp := util.NewWorkerPool("ConvertDailyRawData", 15)
 	wp.Run()
+	// TODO: push insert stock to worker pool instead push convert function
 	for _, raw := range raws {
 		func(r model.DailyRaw) {
 			wp.Push(func() {
-				svc.convert(r)
+				svc.convert(stockMapChan, r)
 			})
 		}(raw)
 	}
@@ -33,7 +48,7 @@ func (svc Service) ConvertDailyRawData() {
 	svc.l.Info("all daily raw data converted")
 }
 
-func (svc Service) convert(raw model.DailyRaw) {
+func (svc Service) convert(stockMapChan chan model.StockMap, raw model.DailyRaw) {
 	logDate := util.LogDate(raw.Date)
 	data := &model.DailyRawData{}
 	if err := json.Unmarshal([]byte(raw.Body), data); err != nil {
@@ -44,7 +59,7 @@ func (svc Service) convert(raw model.DailyRaw) {
 	if data.Stat != "OK" || len(data.Data) == 0 {
 		return
 	}
-	// TODO: Update `Open` and `Stock List`
+
 	stocks := data.ParseStock(raw.Date)
 	for _, stock := range stocks {
 		if stock.ID != "2330" {

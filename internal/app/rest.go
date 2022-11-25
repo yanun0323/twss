@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"stocker/internal/service"
 	"stocker/internal/util"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
@@ -24,5 +25,5 @@ func APIServer(ctx context.Context, svc service.Service) {
 
 	port := ":" + viper.GetString("server.port")
 	go e.Start(port)
-	l.Infof("start api server at port %s", port)
+	<-time.After(time.Second)
 }

@@ -12,34 +12,30 @@ const (
 	_REQUEST_RETRY_TIMES     = 3
 )
 
-var (
-	_DEFAULT_START_DATE = time.Date(2010, time.January, 1, 0, 0, 0, 0, time.Local)
-)
-
 func (svc Service) CrawlDailyRawData() {
-	last, err := svc.repo.GetLastDailyRaw()
+	svc.l.Info("start daily raw data crawl")
+	last, err := svc.repo.GetLastDailyRawDate()
 	if err != nil {
-		svc.l.Warnf("failed to get last daily raw, %+v", err)
-		last = model.DailyRaw{
-			Date: _DEFAULT_START_DATE,
-		}
+		svc.l.Errorf("get last daily raw date failed, %+v", err)
+		return
 	}
 
-	date := last.Date.Add(24 * time.Hour)
-
+	date := last.Add(24 * time.Hour)
 	now := time.Now().Local().Add(-18 * time.Hour) /* turn every 18:00 into 00:00 to crawl data after 18:00 every day */
-	if date.Before(now) {
-		svc.l.Info("start crawl daily raw data, last daily raw date: ", util.LogDate(last.Date))
-	}
-	svc.l.Debug("now ", now)
+
+	svc.l.Debug("start crawl date ", util.LogDate(date))
+	svc.l.Debug("start crawl now  ", util.LogDate(now))
 	for ; date.Before(now); util.NextDay(&date) {
 		for r := _REQUEST_RETRY_TIMES; r > 0; r-- {
 			err := svc.crawl(date)
-			if err == nil {
+			if err != nil {
 				break
 			}
-			svc.l.Errorf("crawl failed, retry in 3 second, %+v", err)
+			if r > 1 {
+				svc.l.Warnf("crawl failed, retry in 3 second, remain %d times, %+v", r, err)
+			}
 		}
+		svc.l.Errorf("crawl date %s failed, stop crawling", util.LogDate(date))
 	}
 	svc.l.Info("all daily raw data is update to date")
 }
@@ -48,6 +44,7 @@ func (svc Service) crawl(date time.Time) error {
 	defer time.Sleep(_API_LIMIT_INTERVAL_TIME)
 	logDate := util.LogDate(date)
 	svc.l.Infof("--- start crawl %s ---", logDate)
+	
 	url := fmt.Sprintf("https://www.twse.com.tw/exchangeReport/MI_INDEX?response=json&date=%s&type=ALLBUT0999", util.FormatToUrlDate(date))
 	body, err := util.GetRequest(url)
 	if err != nil {

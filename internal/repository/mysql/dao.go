@@ -6,8 +6,12 @@ import (
 	"stocker/internal/model"
 	"time"
 
-	"github.com/yanun0323/pkg/logs"
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
+)
+
+var (
+	_defaultStartDate = time.Date(2010, time.January, 1, 0, 0, 0, 0, time.Local)
 )
 
 type MysqlDao struct {
@@ -25,58 +29,94 @@ func New(ctx context.Context, db *gorm.DB) MysqlDao {
 }
 
 func (dao MysqlDao) AutoMigrate() {
-	_ = dao.db.AutoMigrate(model.DailyRaw{})
+	_ = dao.db.AutoMigrate(
+		model.Open{},
+		model.DailyRaw{},
+		model.StockInfo{},
+	)
 }
 
 func (dao MysqlDao) Migrate(table string, dst interface{}) {
 	_ = dao.db.Table(table).AutoMigrate(dst)
 }
 
-func (dao MysqlDao) ListDailyRaws(from, to time.Time) ([]model.DailyRaw, error) {
+func (dao MysqlDao) ListAllDailyRaws() ([]model.DailyRaw, error) {
 	raws := []model.DailyRaw{}
-	result := dao.db.Where("date >= ? AND date <= ?", from, to).Find(&raws)
-	if result.Error != nil {
-		return nil, result.Error
+	err := dao.db.Find(&raws).Error
+	if err != nil {
+		return nil, err
 	}
 	return raws, nil
 }
 
-func (dao MysqlDao) ListAllDailyRaws() ([]model.DailyRaw, error) {
+func (dao MysqlDao) ListDailyRaws(from, to time.Time) ([]model.DailyRaw, error) {
 	raws := []model.DailyRaw{}
-	result := dao.db.Find(&raws)
-	if result.Error != nil {
-		return nil, result.Error
+	err := dao.db.Where("date >= ? AND date <= ?", from, to).Find(&raws).Error
+	if err != nil {
+		return nil, err
 	}
 	return raws, nil
+}
+
+func (dao MysqlDao) GetLastOpenDate() (time.Time, error) {
+	t := time.Time{}
+	err := dao.db.Select("date").Last(&t).Error
+	if err != nil {
+		return time.Time{}, err
+	}
+	return t, nil
+}
+
+func (dao MysqlDao) GetStockMap() (model.StockMap, error) {
+	list := model.StockList{}
+	err := dao.db.Table(list.TableName()).Find(&list).Error
+	if err != nil {
+		return nil, err
+	}
+	return list.Map(), nil
+}
+
+func (dao MysqlDao) GetLastDailyRawDate() (time.Time, error) {
+	t := time.Time{}
+	err := dao.db.Select("date").Last(&t).Error
+	if errors.Is(gorm.ErrRecordNotFound, err) {
+		return _defaultStartDate, nil
+	}
+	if err != nil {
+		return time.Time{}, err
+	}
+	return t, nil
 }
 
 func (dao MysqlDao) GetDailyRaw(date time.Time) (model.DailyRaw, error) {
 	raw := model.DailyRaw{}
-	result := dao.db.First(&raw, date)
-	if result.Error != nil {
-		return model.DailyRaw{}, result.Error
+	err := dao.db.First(&raw, date).Error
+	if err != nil {
+		return model.DailyRaw{}, err
 	}
 	return raw, nil
 }
 
-func (dao MysqlDao) GetLastDailyRaw() (model.DailyRaw, error) {
-	raw := model.DailyRaw{}
-	result := dao.db.Last(&raw)
-	if result.Error != nil {
-		return model.DailyRaw{}, result.Error
+func (dao MysqlDao) InsertOpen(open model.Open) error {
+	err := dao.db.Create(open).Error
+	if err != nil && isNotDuplicateEntryErr(err) {
+		return err
 	}
-	return raw, nil
+	return nil
 }
 
 func (dao MysqlDao) InsertDailyRaw(raw model.DailyRaw) error {
-	err := dao.db.Where("date = ?", raw.Date).Error
-	if !errors.Is(gorm.ErrRecordNotFound, err) {
-		logs.Get(dao.ctx).Debug("insert daily raw, data exist")
-		return nil
+	err := dao.db.Create(raw).Error
+	if err != nil && isNotDuplicateEntryErr(err) {
+		return err
 	}
+	return nil
+}
 
-	if result := dao.db.Create(raw); result.Error != nil {
-		return result.Error
+func (dao MysqlDao) InsertStockList(info model.StockInfo) error {
+	err := dao.db.Create(info).Error
+	if err != nil && isNotDuplicateEntryErr(err) {
+		return err
 	}
 	return nil
 }
@@ -85,15 +125,17 @@ func (dao MysqlDao) InsertDailyStock(stock model.DailyStock) error {
 	table := stock.TableName()
 	dao.Migrate(table, stock)
 
-	err := dao.db.Where("date = ?", stock.Date).Error
-	if !errors.Is(gorm.ErrRecordNotFound, err) {
-		logs.Get(dao.ctx).Debug("insert daily stock, data exist")
-		return nil
-	}
-
-	result := dao.db.Table(table).Create(stock)
-	if result.Error != nil {
-		return result.Error
+	err := dao.db.Table(table).Create(stock).Error
+	if err != nil && isNotDuplicateEntryErr(err) {
+		return err
 	}
 	return nil
+}
+
+func isNotDuplicateEntryErr(err error) bool {
+	sqlErr, ok := err.(*mysql.MySQLError)
+	if !ok {
+		return true
+	}
+	return sqlErr.Number != 1062
 }

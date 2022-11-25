@@ -10,11 +10,16 @@ type Repository interface {
 }
 
 type DBRepository interface {
-	ListDailyRaws(from, to time.Time) ([]model.DailyRaw, error)
 	ListAllDailyRaws() ([]model.DailyRaw, error)
-	GetLastDailyRaw() (model.DailyRaw, error)
-	GetDailyRaw(time.Time) (model.DailyRaw, error)
-	InsertDailyRaw(raw model.DailyRaw) error
+	ListDailyRaws(from, to time.Time) ([]model.DailyRaw, error)
 
-	InsertDailyStock(stock model.DailyStock) error
+	GetLastOpenDate() (time.Time, error)
+	GetStockMap() (model.StockMap, error)
+	GetLastDailyRawDate() (time.Time, error)
+	GetDailyRaw(time.Time) (model.DailyRaw, error)
+
+	InsertOpen(model.Open) error
+	InsertDailyRaw(model.DailyRaw) error
+	InsertStockList(model.StockInfo) error
+	InsertDailyStock(model.DailyStock) error
 }
