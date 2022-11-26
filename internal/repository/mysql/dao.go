@@ -3,15 +3,27 @@ package mysql
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log"
+	"os"
 	"stocker/internal/model"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/spf13/viper"
+	"github.com/yanun0323/pkg/logs"
+	sql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+)
+
+const (
+	_MAX_CONNECTION          = 50
+	_RECONNECT_TIME_INTERVAL = 5 * time.Second
 )
 
 var (
-	_defaultStartDate = time.Date(2010, time.January, 1, 0, 0, 0, 0, time.Local)
+	_defaultStartPreviousDate = time.Date(2004, time.February, 10, 0, 0, 0, 0, time.Local)
 )
 
 type MysqlDao struct {
@@ -19,13 +31,62 @@ type MysqlDao struct {
 	ctx context.Context
 }
 
-func New(ctx context.Context, db *gorm.DB) MysqlDao {
+func New(ctx context.Context) MysqlDao {
 	dao := MysqlDao{
-		db:  db,
+		db:  connectDB(ctx),
 		ctx: ctx,
 	}
 	dao.AutoMigrate()
 	return dao
+}
+
+func connectDB(ctx context.Context) *gorm.DB {
+	l := logs.Get(ctx)
+	logLevel := logger.Silent
+	if os.Getenv("MODE") == "debug" {
+		logLevel = logger.Info
+	}
+
+	dbLogger := logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		logger.Config{
+			SlowThreshold:             time.Second,
+			IgnoreRecordNotFoundError: false,
+			LogLevel:                  logLevel,
+			Colorful:                  true,
+		},
+	)
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		viper.GetString("mysql.username"),
+		viper.GetString("mysql.password"),
+		viper.GetString("mysql.host"),
+		viper.GetInt("mysql.port"),
+		viper.GetString("mysql.database"))
+
+	for {
+		db, err := gorm.Open(sql.Open(dsn), &gorm.Config{
+			Logger:                 dbLogger,
+			SkipDefaultTransaction: false,
+		})
+		if err != nil {
+			l.Warnf("connect database failed. reconnect in %d seconds, %+v", _RECONNECT_TIME_INTERVAL, err)
+			time.Sleep(_RECONNECT_TIME_INTERVAL)
+			continue
+		}
+		sql, err := db.DB()
+		if err != nil {
+			l.Warnf("connect database failed. reconnect in %d seconds, %+v", _RECONNECT_TIME_INTERVAL, err)
+			time.Sleep(_RECONNECT_TIME_INTERVAL)
+			continue
+		}
+		sql.SetMaxOpenConns(_MAX_CONNECTION)
+		sql.SetMaxIdleConns(_MAX_CONNECTION)
+		sql.SetConnMaxIdleTime(time.Second)
+		sql.SetConnMaxLifetime(time.Second)
+
+		return db
+	}
 }
 
 func (dao MysqlDao) AutoMigrate() {
@@ -40,13 +101,21 @@ func (dao MysqlDao) Migrate(table string, dst interface{}) {
 	_ = dao.db.Table(table).AutoMigrate(dst)
 }
 
-func (dao MysqlDao) ListAllDailyRaws() ([]model.DailyRaw, error) {
-	raws := []model.DailyRaw{}
-	err := dao.db.Find(&raws).Error
-	if err != nil {
-		return nil, err
-	}
-	return raws, nil
+func (dao MysqlDao) Debug() *gorm.DB {
+	return dao.db
+}
+
+func (dao MysqlDao) ErrRecordNotFound() error {
+	return gorm.ErrRecordNotFound
+}
+
+func (dao MysqlDao) CheckOpen(date time.Time) error {
+	return dao.db.Table(model.Open{}.TableName()).Where("date = ?", date).Error
+}
+
+func (dao MysqlDao) CheckStock(date time.Time) error {
+	table := model.DailyStock{ID: "2330"}.TableName()
+	return dao.db.Table(table).Where("date = ?", date).Error
 }
 
 func (dao MysqlDao) ListDailyRaws(from, to time.Time) ([]model.DailyRaw, error) {
@@ -59,41 +128,72 @@ func (dao MysqlDao) ListDailyRaws(from, to time.Time) ([]model.DailyRaw, error) 
 }
 
 func (dao MysqlDao) GetLastOpenDate() (time.Time, error) {
-	t := time.Time{}
-	err := dao.db.Select("date").Last(&t).Error
-	if err != nil {
-		return time.Time{}, err
+	open := model.Open{}
+	if dao.db.Select("date").Last(&open).Error == nil {
+		logs.Get(dao.ctx).Debug(open.Date)
+		return open.Date, nil
 	}
-	return t, nil
+	return _defaultStartPreviousDate, nil
 }
 
 func (dao MysqlDao) GetStockMap() (model.StockMap, error) {
 	list := model.StockList{}
 	err := dao.db.Table(list.TableName()).Find(&list).Error
+	if errors.Is(gorm.ErrRecordNotFound, err) {
+		return model.StockMap{}, nil
+	}
 	if err != nil {
 		return nil, err
 	}
 	return list.Map(), nil
 }
 
+func (dao MysqlDao) GetStock(id string) (model.Stock, error) {
+	info := model.StockInfo{}
+	data := []model.DailyStock{}
+
+	if err := dao.db.Where("id = ?", id).Take(&info).Error; err != nil {
+		return model.Stock{}, err
+	}
+
+	if err := dao.db.Table(model.DailyStock{ID: id}.TableName()).Find(&data).Error; err != nil {
+		return model.Stock{}, err
+	}
+
+	return model.Stock{
+		ID:        info.ID,
+		Name:      info.Name,
+		FirstDate: info.FirstDate,
+		LastDate:  info.LastDate,
+		Unable:    info.Unable,
+		Trading:   data,
+	}, nil
+}
+
+func (dao MysqlDao) GetDefaultStartDate() (time.Time, error) {
+	return _defaultStartPreviousDate.Add(24 * time.Hour), nil
+}
+
 func (dao MysqlDao) GetLastDailyRawDate() (time.Time, error) {
-	t := time.Time{}
-	err := dao.db.Select("date").Last(&t).Error
+	raw := model.DailyRaw{}
+	err := dao.db.Select("date").Last(&raw).Error
 	if errors.Is(gorm.ErrRecordNotFound, err) {
-		return _defaultStartDate, nil
+		return _defaultStartPreviousDate, nil
 	}
 	if err != nil {
 		return time.Time{}, err
 	}
-	return t, nil
+	return raw.Date, nil
 }
 
 func (dao MysqlDao) GetDailyRaw(date time.Time) (model.DailyRaw, error) {
+	logs.Get(dao.ctx).Debug(date)
 	raw := model.DailyRaw{}
-	err := dao.db.First(&raw, date).Error
+	err := dao.db.Where("date = ?", date).Take(&raw).Error
 	if err != nil {
 		return model.DailyRaw{}, err
 	}
+	logs.Get(dao.ctx).Debug(raw.Date)
 	return raw, nil
 }
 

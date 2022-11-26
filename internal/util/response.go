@@ -21,17 +21,17 @@ func NewMsgResponse(msg string) Response {
 	}
 }
 
-func NewErrorResponse(msg string, err error) Response {
-	if err != nil {
+func NewErrorResponse(msg string, errs ...error) Response {
+	if len(errs) == 0 {
 		return Response{
 			Status: _STATUS_FAIL,
 			Msg:    msg,
-			Error:  fmt.Sprintf("%s", err),
 		}
 	}
 	return Response{
 		Status: _STATUS_FAIL,
 		Msg:    msg,
+		Error:  fmt.Sprintf("%s", errs[0]),
 	}
 }
 

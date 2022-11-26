@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"net/http"
 	"stocker/internal/util"
 	"time"
@@ -30,4 +31,24 @@ func (svc Service) RawDailyAPI(c echo.Context) error {
 		Date: raw.Date.Format("2006-01-02"),
 		Body: string(raw.Body),
 	}))
+}
+
+func (svc Service) StockAPI(c echo.Context) error {
+	id := c.QueryParam("id")
+	if len(id) == 0 {
+		svc.l.Errorf("[%s] empty stock id", c.RealIP())
+		return c.JSON(http.StatusInternalServerError, util.NewErrorResponse("empty stock id"))
+	}
+	stock, err := svc.repo.GetStock(id)
+	if errors.Is(svc.repo.ErrRecordNotFound(), err) {
+		svc.l.Errorf("[%s] invalid stock id, %+v", c.RealIP(), err)
+		return c.JSON(http.StatusBadRequest, util.NewErrorResponse("invalid stock id"))
+	}
+	if err != nil {
+		svc.l.Errorf("[%s] get stock failed, %+v", c.RealIP(), err)
+		return c.JSON(http.StatusInternalServerError, util.NewErrorResponse("internal error", err))
+	}
+
+	svc.l.Infof("[%s] get stock succeed", c.RealIP())
+	return c.JSON(http.StatusOK, util.NewDataResponse("Get daily raw data succeed", stock))
 }

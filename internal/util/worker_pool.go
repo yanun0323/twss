@@ -30,9 +30,9 @@ type WorkerPool struct {
 	wg     *sync.WaitGroup
 }
 
-func NewWorkerPool(name string, worker int) WorkerPool {
+func NewWorkerPool(name string, worker int) *WorkerPool {
 	ctx, cancel := context.WithCancel(context.Background())
-	return WorkerPool{
+	return &WorkerPool{
 		name:   name,
 		worker: worker,
 		jobs:   make(chan Job, worker),

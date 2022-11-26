@@ -1,14 +1,14 @@
 package service
 
 import (
-	"encoding/json"
 	"stocker/internal/model"
 	"stocker/internal/util"
+	"sync"
 	"time"
 )
 
 func (svc Service) ConvertDailyRawData() {
-	svc.l.Info("start daily raw data convert")
+	svc.l.Info("start daily raw data convert ...")
 	stockMap, err := svc.repo.GetStockMap()
 	if err != nil {
 		svc.l.Errorf("get stock map failed, %+v", err)
@@ -17,58 +17,85 @@ func (svc Service) ConvertDailyRawData() {
 
 	date, err := svc.repo.GetLastOpenDate()
 	if err != nil {
-		svc.l.Errorf("get stock map failed, %+v", err)
+		svc.l.Errorf("get last open date failed, %+v", err)
 		return
 	}
 	date = date.Add(24 * time.Hour)
-
-	stockMapChan := make(chan model.StockMap, 1)
-	stockMapChan <- stockMap
 
 	raws, err := svc.repo.ListDailyRaws(date, time.Now())
 	if err != nil {
 		svc.l.Errorf("list daily raws failed, %+v", err)
 		return
 	}
-	wp := util.NewWorkerPool("ConvertDailyRawData", 15)
-	wp.Run()
-	// TODO: push insert stock to worker pool instead push convert function
-	for _, raw := range raws {
-		func(r model.DailyRaw) {
-			wp.Push(func() {
-				svc.convert(stockMapChan, r)
-			})
-		}(raw)
-	}
 
-	if err := wp.Shutdown(30 * time.Second); err != nil {
+	inserterWP := util.NewWorkerPool("InsertDailyStock", 100)
+	inserterWP.Run()
+	stockChan := make(chan model.DailyStock, 100)
+	closeLooperChan := make(chan struct{}, 1)
+	var looperWG sync.WaitGroup
+	looperWG.Add(1)
+	go func() {
+		defer looperWG.Done()
+		for {
+			select {
+			case stock := <-stockChan:
+				inserterWP.Push(func() {
+					err := svc.repo.InsertDailyStock(stock)
+					if err != nil {
+						svc.l.Errorf("%s, insert stock failed, %+v", util.LogDate(stock.Date), err)
+					}
+				})
+			case <-closeLooperChan:
+				svc.l.Info("looper stopped")
+				return
+			}
+		}
+	}()
+	svc.l.Debug("raws count:", len(raws))
+	for _, raw := range raws {
+		svc.convert(stockMap, raw, stockChan)
+	}
+	svc.l.Info("starting shutdown worker pool ...")
+
+	if err := inserterWP.Shutdown(30 * time.Second); err != nil {
 		svc.l.Errorf("shutdown worker pool with error, %+v", err)
 	}
+	closeLooperChan <- struct{}{}
+	looperWG.Wait()
 
-	svc.l.Info("all daily raw data converted")
+	svc.l.Info("all daily raw data converted!")
 }
 
-func (svc Service) convert(stockMapChan chan model.StockMap, raw model.DailyRaw) {
+func (svc Service) convert(stockMap model.StockMap, raw model.DailyRaw, stockChan chan model.DailyStock) {
 	logDate := util.LogDate(raw.Date)
-	data := &model.DailyRawData{}
-	if err := json.Unmarshal([]byte(raw.Body), data); err != nil {
+	data, err := raw.GetData()
+	if err != nil {
 		svc.l.Errorf("%s, unmarshal daily raw data failed, %+v", logDate, err)
 		return
 	}
 
-	if data.Stat != "OK" || len(data.Data) == 0 {
+	if data.Stat != "OK" || len(data.Data()) == 0 {
+		_ = svc.repo.InsertOpen(model.Open{
+			Date:   raw.Date,
+			IsOpen: false,
+		})
 		return
 	}
 
 	stocks := data.ParseStock(raw.Date)
 	for _, stock := range stocks {
-		if stock.ID != "2330" {
-			continue
+		if _, exist := stockMap[stock.ID]; !exist {
+			stockMap[stock.ID] = stock.Name
+			_ = svc.repo.InsertStockList(model.StockInfo{
+				ID:   stock.ID,
+				Name: stock.Name,
+			})
 		}
-		err := svc.repo.InsertDailyStock(stock)
-		if err != nil {
-			svc.l.Errorf("%s, insert stock failed, %+v", logDate, err)
-		}
-		return
+		stockChan <- stock
 	}
+	_ = svc.repo.InsertOpen(model.Open{
+		Date:   raw.Date,
+		IsOpen: true,
+	})
+	svc.l.Infof("%s, convert succeed", logDate)
 }

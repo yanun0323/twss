@@ -1,11 +1,15 @@
-.PHONY: run
+.PHONY: run check job debug
 run:
 	go run main.go
+check:
+	MODE=check go run main.go
+job:
+	MODE=job go run main.go
+debug:
+	MODE=debug go run main.go
 
-.PHONY: test
+.PHONY: test test.debug
 test:
 	go test --count=1 ./...
-
-.PHONY: test.debug
 test.debug:
 	go test -v --count=1 ./...

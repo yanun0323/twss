@@ -1,8 +1,16 @@
 package model
 
+import (
+	"sync"
+	"time"
+)
+
 type StockInfo struct {
-	ID   string `gorm:"primaryKey"`
-	Name string `gorm:"not null"`
+	ID        string    `gorm:"column:id;primaryKey"`
+	Name      string    `gorm:"column:name;not null"`
+	FirstDate time.Time `gorm:"column:first_date;not null"`
+	LastDate  time.Time `gorm:"column:last_date;not null"`
+	Unable    bool      `gorm:"column:unable;not null"`
 }
 
 func (StockInfo) TableName() string {
@@ -34,4 +42,16 @@ func (m StockMap) List() StockList {
 		})
 	}
 	return list
+}
+
+func (m StockMap) SyncMap() *StockSyncMap {
+	return &StockSyncMap{
+		Mutex: &sync.Mutex{},
+		Map:   m,
+	}
+}
+
+type StockSyncMap struct {
+	*sync.Mutex
+	Map StockMap
 }

@@ -22,6 +22,7 @@ func APIServer(ctx context.Context, svc service.Service) {
 		return c.JSON(http.StatusOK, util.NewMsgResponse("health check succeed :)"))
 	})
 	api.GET("/daily", svc.RawDailyAPI)
+	api.GET("/stock", svc.StockAPI)
 
 	port := ":" + viper.GetString("server.port")
 	go e.Start(port)
