@@ -95,7 +95,7 @@ func (raw *DailyRawData) ParseStock(date time.Time) []DailyStock {
 			TradeSymbol:  symbol,
 			TradeGrade:   grade,
 			Percentage:   calculatePercentage(grade, s[5]),
-			Limit:        calculateLimit(s[5], s[8]),
+			Limit:        calculateLimit(s[8], grade),
 		})
 	}
 	return sd
