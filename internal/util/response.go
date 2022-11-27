@@ -22,7 +22,7 @@ func NewMsgResponse(msg string) Response {
 }
 
 func NewErrorResponse(msg string, errs ...error) Response {
-	if len(errs) == 0 {
+	if len(errs) == 0 || errs[0] == nil {
 		return Response{
 			Status: _STATUS_FAIL,
 			Msg:    msg,

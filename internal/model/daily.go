@@ -13,7 +13,7 @@ var (
 )
 
 type DailyRaw struct {
-	Date time.Time `gorm:"column:date;primaryKey;not null"`
+	Date time.Time `gorm:"column:date;primaryKey"`
 	Body []byte    `gorm:"column:body"`
 }
 
@@ -73,33 +73,33 @@ func (raw *DailyRawData) Data() [][]string {
 	}
 	return raw.Data8
 }
-func (raw *DailyRawData) ParseStock() (DailyStock, []DailyStockData, error) {
-	data := raw.parseStockData()
-	buf, err := json.Marshal(data)
-	if err != nil {
-		return DailyStock{}, nil, err
-	}
-	stat := "Close"
-
-	return DailyStock{
-		Date: raw.Date,
-		Data: string(buf),
-	}, data, nil
+func (raw *DailyRawData) ParseStockList() (DailyStockList, error) {
+	return DailyStockList{
+		Date:   raw.Date,
+		Open:   raw.Stat == "OK",
+		Stocks: raw.ParseStock(true),
+	}, nil
 }
 
 // [0:證券代號 1:證券名稱 2:成交股數 3:成交筆數 4:成交金額 5:開盤價 6:最高價 7:最低價 8:收盤價 9:漲跌(+/-) 10:漲跌價差 11:最後揭示買價 12:最後揭示買量 13:最後揭示賣價 14:最後揭示賣量 15:本益比]
-func (raw *DailyRawData) parseStockData() []DailyStockData {
-	sd := make([]DailyStockData, 0, len(raw.Data()))
+func (raw *DailyRawData) ParseStock(isResponse ...bool) []DailyStock {
+	sd := make([]DailyStock, 0, len(raw.Data()))
 	for _, s := range raw.Data() {
 		symbol := parseSymbol(s[9])
 		grade := s[10]
 		if symbol != " " {
 			grade = symbol + grade
 		}
-		sd = append(sd, DailyStockData{
+		idResponse, nameResponse := "", ""
+		if len(isResponse) != 0 && isResponse[0] {
+			idResponse, nameResponse = s[0], s[1]
+		}
+		sd = append(sd, DailyStock{
 			Date:         raw.Date,
 			ID:           s[0],
 			Name:         s[1],
+			IDResponse:   idResponse,
+			NameResponse: nameResponse,
 			TradeShare:   s[2],
 			TradeCount:   s[3],
 			TradeMoney:   s[4],
@@ -149,10 +149,6 @@ func calculateLimit(closeStr, gradeStr string) bool {
 		interval = interval.Neg()
 	}
 	expected := fixPrice(begin.Add(interval))
-	in := begin.Shift(-1)
-	if grade.IsNegative() {
-		in = in.Neg()
-	}
 	if begin.Sign() > 0 {
 		return close.GreaterThanOrEqual(expected)
 	}
@@ -209,26 +205,34 @@ func priceThreshold(price decimal.Decimal) (decimal.Decimal, int32) {
 	return _otherThreshold, 0
 }
 
-type DailyStock struct {
-	Date time.Time
-	Stat string
-	Data string
+type DailyStockList struct {
+	Date   time.Time    `gorm:"primaryKey" json:"date"`
+	Open   bool         `gorm:"not null" json:"open"`
+	Stocks []DailyStock `gorm:"not null" json:"stock"`
 }
 
-func (DailyStock) TableName() string {
+func (DailyStockList) TableName() string {
 	return "daily_stock"
 }
 
-type DailyStockData struct {
-	Date                                             time.Time `gorm:"column:date;primaryKey;not null"`
-	ID, Name                                         string    `gorm:"-" json:"-"`
-	TradeShare, TradeCount, TradeMoney               string    `gorm:"not null"`
-	PriceOpen, PriceHighest, PriceLowest, PriceClose string    `gorm:"not null"`
-	TradeSymbol, TradeGrade                          string    `gorm:"not null"`
-	Percentage                                       string    `gorm:"not null"`
-	Limit                                            bool      `gorm:"not null"`
+type DailyStock struct {
+	Date         time.Time `gorm:"column:date;primaryKey" json:"date"`
+	ID, Name     string    `gorm:"-" json:"-"`
+	IDResponse   string    `gorm:"-" json:"id,omitempty"`
+	NameResponse string    `gorm:"-" json:"name,omitempty"`
+	TradeShare   string    `gorm:"not null" json:"tradeShare"`
+	TradeCount   string    `gorm:"not null" json:"tradeCount"`
+	TradeMoney   string    `gorm:"not null" json:"tradeMoney"`
+	PriceOpen    string    `gorm:"not null" json:"priceOpen"`
+	PriceHighest string    `gorm:"not null" json:"priceHighest"`
+	PriceLowest  string    `gorm:"not null" json:"priceLowest"`
+	PriceClose   string    `gorm:"not null" json:"priceClose"`
+	TradeSymbol  string    `gorm:"not null" json:"tradeSymbol"`
+	TradeGrade   string    `gorm:"not null" json:"tradeGrade"`
+	Percentage   string    `gorm:"not null" json:"percentage"`
+	Limit        bool      `gorm:"not null" json:"limit"`
 }
 
-func (stock DailyStockData) GetTableName() string {
+func (stock DailyStock) GetTableName() string {
 	return "stock_" + stock.ID
 }

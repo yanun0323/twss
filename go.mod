@@ -11,7 +11,7 @@ require (
 	github.com/spf13/viper v1.13.0
 	github.com/stretchr/testify v1.8.0
 	github.com/yanun0323/pkg v1.0.4
-	google.golang.org/genproto v0.0.0-20220519153652-3a47de7e79bd
+	gopkg.in/guregu/null.v4 v4.0.0
 	gorm.io/driver/mysql v1.4.4
 	gorm.io/gorm v1.24.1
 )
@@ -45,7 +45,6 @@ require (
 	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

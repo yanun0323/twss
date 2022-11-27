@@ -43,7 +43,7 @@ func New(ctx context.Context) MysqlDao {
 func connectDB(ctx context.Context) *gorm.DB {
 	l := logs.Get(ctx)
 	loggers := logger.Default
-	if os.Getenv("MODE") == "server" {
+	if os.Getenv("MODE") == "" {
 		loggers = logger.New(
 			log.New(os.Stdout, "\r\n", log.LstdFlags),
 			logger.Config{
@@ -54,7 +54,7 @@ func connectDB(ctx context.Context) *gorm.DB {
 		)
 	}
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True",
 		viper.GetString("mysql.username"),
 		viper.GetString("mysql.password"),
 		viper.GetString("mysql.host"),
@@ -91,7 +91,7 @@ func (dao MysqlDao) AutoMigrate() {
 		model.Open{},
 		model.DailyRaw{},
 		model.StockInfo{},
-		model.DailyStock{},
+		model.DailyStockList{},
 	)
 }
 
@@ -112,7 +112,7 @@ func (dao MysqlDao) CheckOpen(date time.Time) error {
 }
 
 func (dao MysqlDao) CheckStock(date time.Time) error {
-	table := model.DailyStockData{ID: "2330"}.GetTableName()
+	table := model.DailyStock{ID: "2330"}.GetTableName()
 	return dao.db.Table(table).Where("date = ?", date).Error
 }
 
@@ -148,13 +148,13 @@ func (dao MysqlDao) GetStockMap() (model.StockMap, error) {
 
 func (dao MysqlDao) GetStock(id string) (model.Stock, error) {
 	info := model.StockInfo{}
-	data := []model.DailyStockData{}
+	data := []model.DailyStock{}
 
 	if err := dao.db.Where("id = ?", id).Take(&info).Error; err != nil {
 		return model.Stock{}, err
 	}
 
-	if err := dao.db.Table(model.DailyStockData{ID: id}.GetTableName()).Find(&data).Error; err != nil {
+	if err := dao.db.Table(model.DailyStock{ID: id}.GetTableName()).Find(&data).Error; err != nil {
 		return model.Stock{}, err
 	}
 
@@ -217,15 +217,7 @@ func (dao MysqlDao) InsertStockList(info model.StockInfo) error {
 	return nil
 }
 
-func (dao MysqlDao) InsertDailyStock(stock model.DailyStock) error {
-	err := dao.db.Create(stock).Error
-	if err != nil && isNotDuplicateEntryErr(err) {
-		return err
-	}
-	return nil
-}
-
-func (dao MysqlDao) InsertDailyStockData(stock model.DailyStockData) error {
+func (dao MysqlDao) InsertDailyStockData(stock model.DailyStock) error {
 	table := stock.GetTableName()
 	dao.Migrate(table, stock)
 

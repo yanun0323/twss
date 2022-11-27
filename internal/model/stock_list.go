@@ -1,7 +1,6 @@
 package model
 
 import (
-	"sync"
 	"time"
 )
 
@@ -42,16 +41,4 @@ func (m StockMap) List() StockList {
 		})
 	}
 	return list
-}
-
-func (m StockMap) SyncMap() *StockSyncMap {
-	return &StockSyncMap{
-		Mutex: &sync.Mutex{},
-		Map:   m,
-	}
-}
-
-type StockSyncMap struct {
-	*sync.Mutex
-	Map StockMap
 }
