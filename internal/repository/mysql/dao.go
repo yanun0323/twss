@@ -43,7 +43,7 @@ func New(ctx context.Context) MysqlDao {
 func connectDB(ctx context.Context) *gorm.DB {
 	l := logs.Get(ctx)
 	loggers := logger.Default
-	if os.Getenv("MODE") == "" {
+	if os.Getenv("MODE") == "server" {
 		loggers = logger.New(
 			log.New(os.Stdout, "\r\n", log.LstdFlags),
 			logger.Config{
