@@ -7,6 +7,11 @@ import (
 
 func (svc Service) Debug() {
 	svc.l.Info("start debugging ...")
+
+	if false { /* to avoid unused warning */
+		svc.debugDailyRawData("20221125")
+		svc.debugRefactorStockList()
+	}
 }
 
 func (svc Service) debugDailyRawData(dateStr string) {
