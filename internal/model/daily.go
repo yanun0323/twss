@@ -1,9 +1,10 @@
 package model
 
 import (
-	"encoding/json"
 	"regexp"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/shopspring/decimal"
 )
