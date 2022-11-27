@@ -53,7 +53,7 @@ func (svc Service) StockDailyAPI(c echo.Context) error {
 
 	svc.l.Infof("[%s] get daily stock succeed", c.RealIP())
 	return c.JSON(http.StatusOK, util.NewDataResponse("get daily stock succeed", struct {
-		Date time.Time
+		Date time.Time `json:"date"`
 		model.DailyRawData
 	}{
 		Date:         data.Date,
