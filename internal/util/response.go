@@ -3,8 +3,8 @@ package util
 import "fmt"
 
 const (
-	_STATUS_OK   = "OK"
-	_STATUS_FAIL = "FAIL"
+	_statusOK   = "OK"
+	_statusFail = "FAIL"
 )
 
 type Response struct {
@@ -16,7 +16,7 @@ type Response struct {
 
 func NewMsgResponse(msg string) Response {
 	return Response{
-		Status: _STATUS_OK,
+		Status: _statusOK,
 		Msg:    msg,
 	}
 }
@@ -24,12 +24,12 @@ func NewMsgResponse(msg string) Response {
 func NewErrorResponse(msg string, errs ...error) Response {
 	if len(errs) == 0 || errs[0] == nil {
 		return Response{
-			Status: _STATUS_FAIL,
+			Status: _statusFail,
 			Msg:    msg,
 		}
 	}
 	return Response{
-		Status: _STATUS_FAIL,
+		Status: _statusFail,
 		Msg:    msg,
 		Error:  fmt.Sprintf("%s", errs[0]),
 	}
@@ -37,7 +37,7 @@ func NewErrorResponse(msg string, errs ...error) Response {
 
 func NewDataResponse(msg string, data interface{}) Response {
 	return Response{
-		Status: _STATUS_OK,
+		Status: _statusOK,
 		Msg:    msg,
 		Data:   data,
 	}
