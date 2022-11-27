@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"net/http"
+	"stocker/internal/model"
 	"stocker/internal/util"
 	"time"
 
@@ -25,7 +26,7 @@ func (svc Service) RawDailyAPI(c echo.Context) error {
 	}
 
 	svc.l.Infof("[%s] get daily raw succeed", c.RealIP())
-	return c.JSON(http.StatusOK, util.NewDataResponse("Get daily raw data succeed", string(raw.Body)))
+	return c.JSON(http.StatusOK, util.NewDataResponse("get daily raw data succeed", string(raw.Body)))
 }
 
 func (svc Service) StockDailyAPI(c echo.Context) error {
@@ -51,7 +52,13 @@ func (svc Service) StockDailyAPI(c echo.Context) error {
 	data.ParseStockList()
 
 	svc.l.Infof("[%s] get daily stock succeed", c.RealIP())
-	return c.JSON(http.StatusOK, util.NewDataResponse("Get daily stock succeed", data))
+	return c.JSON(http.StatusOK, util.NewDataResponse("get daily stock succeed", struct {
+		Date time.Time
+		model.DailyRawData
+	}{
+		Date:         data.Date,
+		DailyRawData: data,
+	}))
 }
 
 func (svc Service) StockAPI(c echo.Context) error {
@@ -72,5 +79,5 @@ func (svc Service) StockAPI(c echo.Context) error {
 	}
 
 	svc.l.Infof("[%s] get stock succeed", c.RealIP())
-	return c.JSON(http.StatusOK, util.NewDataResponse("Get stock succeed", stock))
+	return c.JSON(http.StatusOK, util.NewDataResponse("get stock succeed", stock))
 }

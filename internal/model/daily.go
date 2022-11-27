@@ -31,9 +31,8 @@ func (raw DailyRaw) GetData() (DailyRawData, error) {
 }
 
 type DailyRawData struct {
-	Date      time.Time       `json:"-"`
+	Date      time.Time       `gorm:"column:date;primaryKey" json:"-"`
 	Stat      string          `json:"stat,omitempty"`
-	RawDate   string          `json:"date,omitempty"`
 	Title     string          `json:"title,omitempty"`
 	Fields1   []string        `json:"fields1,omitempty"`
 	Fields2   []string        `json:"fields2,omitempty"`

@@ -91,7 +91,6 @@ func (dao MysqlDao) AutoMigrate() {
 		model.Open{},
 		model.DailyRaw{},
 		model.StockInfo{},
-		model.DailyStockList{},
 	)
 }
 
