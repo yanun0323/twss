@@ -26,12 +26,14 @@ func (raw DailyRaw) GetData() (DailyRawData, error) {
 	if err := json.Unmarshal([]byte(raw.Body), &data); err != nil {
 		return DailyRawData{}, err
 	}
+	data.Date = raw.Date
 	return data, nil
 }
 
 type DailyRawData struct {
+	Date      time.Time       `json:"-"`
 	Stat      string          `json:"stat,omitempty"`
-	Date      string          `json:"date,omitempty"`
+	RawDate   string          `json:"date,omitempty"`
 	Title     string          `json:"title,omitempty"`
 	Fields1   []string        `json:"fields1,omitempty"`
 	Fields2   []string        `json:"fields2,omitempty"`
@@ -71,18 +73,31 @@ func (raw *DailyRawData) Data() [][]string {
 	}
 	return raw.Data8
 }
+func (raw *DailyRawData) ParseStock() (DailyStock, []DailyStockData, error) {
+	data := raw.parseStockData()
+	buf, err := json.Marshal(data)
+	if err != nil {
+		return DailyStock{}, nil, err
+	}
+	stat := "Close"
+
+	return DailyStock{
+		Date: raw.Date,
+		Data: string(buf),
+	}, data, nil
+}
 
 // [0:證券代號 1:證券名稱 2:成交股數 3:成交筆數 4:成交金額 5:開盤價 6:最高價 7:最低價 8:收盤價 9:漲跌(+/-) 10:漲跌價差 11:最後揭示買價 12:最後揭示買量 13:最後揭示賣價 14:最後揭示賣量 15:本益比]
-func (raw *DailyRawData) ParseStock(date time.Time) []DailyStock {
-	sd := make([]DailyStock, 0, len(raw.Data()))
+func (raw *DailyRawData) parseStockData() []DailyStockData {
+	sd := make([]DailyStockData, 0, len(raw.Data()))
 	for _, s := range raw.Data() {
 		symbol := parseSymbol(s[9])
 		grade := s[10]
 		if symbol != " " {
 			grade = symbol + grade
 		}
-		sd = append(sd, DailyStock{
-			Date:         date,
+		sd = append(sd, DailyStockData{
+			Date:         raw.Date,
 			ID:           s[0],
 			Name:         s[1],
 			TradeShare:   s[2],
@@ -195,6 +210,16 @@ func priceThreshold(price decimal.Decimal) (decimal.Decimal, int32) {
 }
 
 type DailyStock struct {
+	Date time.Time
+	Stat string
+	Data string
+}
+
+func (DailyStock) TableName() string {
+	return "daily_stock"
+}
+
+type DailyStockData struct {
 	Date                                             time.Time `gorm:"column:date;primaryKey;not null"`
 	ID, Name                                         string    `gorm:"-" json:"-"`
 	TradeShare, TradeCount, TradeMoney               string    `gorm:"not null"`
@@ -204,6 +229,6 @@ type DailyStock struct {
 	Limit                                            bool      `gorm:"not null"`
 }
 
-func (stock DailyStock) TableName() string {
+func (stock DailyStockData) GetTableName() string {
 	return "stock_" + stock.ID
 }

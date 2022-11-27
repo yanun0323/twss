@@ -28,9 +28,9 @@ func (svc Service) ConvertDailyRawData() {
 		return
 	}
 
-	inserterWP := util.NewWorkerPool("InsertDailyStock", 100)
+	inserterWP := util.NewWorkerPool("InsertDailyStock", 150)
 	inserterWP.Run()
-	stockChan := make(chan model.DailyStock, 100)
+	stockChan := make(chan model.DailyStockData, 150)
 	closeLooperChan := make(chan struct{}, 1)
 	var looperWG sync.WaitGroup
 	looperWG.Add(1)
@@ -40,13 +40,13 @@ func (svc Service) ConvertDailyRawData() {
 			select {
 			case stock := <-stockChan:
 				inserterWP.Push(func() {
-					err := svc.repo.InsertDailyStock(stock)
+					err := svc.repo.InsertDailyStockData(stock)
 					if err != nil {
 						svc.l.Errorf("%s, insert stock failed, %+v", util.LogDate(stock.Date), err)
 					}
 				})
 			case <-closeLooperChan:
-				svc.l.Info("looper stopped")
+				svc.l.Debug("insert looper stopped")
 				return
 			}
 		}
@@ -55,10 +55,10 @@ func (svc Service) ConvertDailyRawData() {
 	for _, raw := range raws {
 		svc.convert(stockMap, raw, stockChan)
 	}
-	svc.l.Info("starting shutdown worker pool ...")
 
+	svc.l.Info("starting shutdown inserter worker pool ...")
 	if err := inserterWP.Shutdown(30 * time.Second); err != nil {
-		svc.l.Errorf("shutdown worker pool with error, %+v", err)
+		svc.l.Errorf("shutdown inserter worker pool with error, %+v", err)
 	}
 	closeLooperChan <- struct{}{}
 	looperWG.Wait()
@@ -66,7 +66,7 @@ func (svc Service) ConvertDailyRawData() {
 	svc.l.Info("all daily raw data converted!")
 }
 
-func (svc Service) convert(stockMap model.StockMap, raw model.DailyRaw, stockChan chan model.DailyStock) {
+func (svc Service) convert(stockMap model.StockMap, raw model.DailyRaw, stockChan chan model.DailyStockData) {
 	logDate := util.LogDate(raw.Date)
 	data, err := raw.GetData()
 	if err != nil {
@@ -82,7 +82,17 @@ func (svc Service) convert(stockMap model.StockMap, raw model.DailyRaw, stockCha
 		return
 	}
 
-	stocks := data.ParseStock(raw.Date)
+	dailyStock, stocks, err := data.ParseStock()
+	if err != nil {
+		svc.l.Errorf("%s, parse stock failed, %+v", logDate, err)
+		return
+	}
+
+	if err := svc.repo.InsertDailyStock(dailyStock); err != nil {
+		svc.l.Errorf("%s, insert daily stock failed, %+v", logDate, err)
+		return
+	}
+
 	for _, stock := range stocks {
 		if _, exist := stockMap[stock.ID]; !exist {
 			stockMap[stock.ID] = stock.Name

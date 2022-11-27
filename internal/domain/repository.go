@@ -31,6 +31,7 @@ type DBRepository interface {
 	InsertDailyRaw(model.DailyRaw) error
 	InsertStockList(model.StockInfo) error
 	InsertDailyStock(model.DailyStock) error
+	InsertDailyStockData(model.DailyStockData) error
 }
 
 type DebugRepository interface {

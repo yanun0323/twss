@@ -42,20 +42,17 @@ func New(ctx context.Context) MysqlDao {
 
 func connectDB(ctx context.Context) *gorm.DB {
 	l := logs.Get(ctx)
-	logLevel := logger.Silent
-	if os.Getenv("MODE") == "debug" {
-		logLevel = logger.Info
+	loggers := logger.Default
+	if os.Getenv("MODE") == "server" {
+		loggers = logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             time.Second,
+				IgnoreRecordNotFoundError: true,
+				Colorful:                  true,
+			},
+		)
 	}
-
-	dbLogger := logger.New(
-		log.New(os.Stdout, "\r\n", log.LstdFlags),
-		logger.Config{
-			SlowThreshold:             time.Second,
-			IgnoreRecordNotFoundError: false,
-			LogLevel:                  logLevel,
-			Colorful:                  true,
-		},
-	)
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		viper.GetString("mysql.username"),
@@ -66,7 +63,7 @@ func connectDB(ctx context.Context) *gorm.DB {
 
 	for {
 		db, err := gorm.Open(sql.Open(dsn), &gorm.Config{
-			Logger:                 dbLogger,
+			Logger:                 loggers,
 			SkipDefaultTransaction: false,
 		})
 		if err != nil {
@@ -94,6 +91,7 @@ func (dao MysqlDao) AutoMigrate() {
 		model.Open{},
 		model.DailyRaw{},
 		model.StockInfo{},
+		model.DailyStock{},
 	)
 }
 
@@ -114,7 +112,7 @@ func (dao MysqlDao) CheckOpen(date time.Time) error {
 }
 
 func (dao MysqlDao) CheckStock(date time.Time) error {
-	table := model.DailyStock{ID: "2330"}.TableName()
+	table := model.DailyStockData{ID: "2330"}.GetTableName()
 	return dao.db.Table(table).Where("date = ?", date).Error
 }
 
@@ -150,13 +148,13 @@ func (dao MysqlDao) GetStockMap() (model.StockMap, error) {
 
 func (dao MysqlDao) GetStock(id string) (model.Stock, error) {
 	info := model.StockInfo{}
-	data := []model.DailyStock{}
+	data := []model.DailyStockData{}
 
 	if err := dao.db.Where("id = ?", id).Take(&info).Error; err != nil {
 		return model.Stock{}, err
 	}
 
-	if err := dao.db.Table(model.DailyStock{ID: id}.TableName()).Find(&data).Error; err != nil {
+	if err := dao.db.Table(model.DailyStockData{ID: id}.GetTableName()).Find(&data).Error; err != nil {
 		return model.Stock{}, err
 	}
 
@@ -187,13 +185,11 @@ func (dao MysqlDao) GetLastDailyRawDate() (time.Time, error) {
 }
 
 func (dao MysqlDao) GetDailyRaw(date time.Time) (model.DailyRaw, error) {
-	logs.Get(dao.ctx).Debug(date)
 	raw := model.DailyRaw{}
 	err := dao.db.Where("date = ?", date).Take(&raw).Error
 	if err != nil {
 		return model.DailyRaw{}, err
 	}
-	logs.Get(dao.ctx).Debug(raw.Date)
 	return raw, nil
 }
 
@@ -222,7 +218,15 @@ func (dao MysqlDao) InsertStockList(info model.StockInfo) error {
 }
 
 func (dao MysqlDao) InsertDailyStock(stock model.DailyStock) error {
-	table := stock.TableName()
+	err := dao.db.Create(stock).Error
+	if err != nil && isNotDuplicateEntryErr(err) {
+		return err
+	}
+	return nil
+}
+
+func (dao MysqlDao) InsertDailyStockData(stock model.DailyStockData) error {
+	table := stock.GetTableName()
 	dao.Migrate(table, stock)
 
 	err := dao.db.Table(table).Create(stock).Error

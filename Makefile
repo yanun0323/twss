@@ -1,6 +1,6 @@
 .PHONY: run check job debug
 run:
-	go run main.go
+	MODE=server go run main.go
 check:
 	MODE=check go run main.go
 job:

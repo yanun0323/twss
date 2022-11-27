@@ -8,5 +8,5 @@ type Stock struct {
 	FirstDate time.Time
 	LastDate  time.Time
 	Unable    bool
-	Trading   []DailyStock
+	Trading   []DailyStockData
 }
