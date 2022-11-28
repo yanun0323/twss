@@ -17,7 +17,7 @@ var (
 
 func DefaultMiddleware(ctx context.Context) []echo.MiddlewareFunc {
 	return []echo.MiddlewareFunc{
-		rateLimit(ctx),
+		// rateLimit(ctx),
 	}
 }
 

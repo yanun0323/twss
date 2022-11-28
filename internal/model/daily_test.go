@@ -14,9 +14,9 @@ func Test_parseSymbol(t *testing.T) {
 }
 
 func Test_calculatePercentage(t *testing.T) {
-	assert.Equal(t, "-0.5", calculatePercentage("-0.0005", "0.1"))
-	assert.Equal(t, "0", calculatePercentage("0", "0.1"))
-	assert.Equal(t, "1.2", calculatePercentage("0.0012", "0.1"))
+	assert.Equal(t, "-0.5", calculatePercentage("-0.0005", "0.1").String())
+	assert.Equal(t, "0", calculatePercentage("0", "0.1").String())
+	assert.Equal(t, "1.2", calculatePercentage("0.0012", "0.1").String())
 }
 
 func Test_fixPrice(t *testing.T) {

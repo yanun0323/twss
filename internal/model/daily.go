@@ -2,6 +2,7 @@ package model
 
 import (
 	"regexp"
+	"stocker/internal/util"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -65,7 +66,7 @@ type DailyRawData struct {
 	Notes     []string        `json:"notes,omitempty"`
 }
 
-func (raw *DailyRawData) Data() [][]string {
+func (raw *DailyRawData) StockData() [][]string {
 	// data8: before 2011/7/31
 	// data9: '2006/09/29' and after 2011/7/31
 	if len(raw.Data9) > len(raw.Data8) {
@@ -77,38 +78,32 @@ func (raw *DailyRawData) ParseStockList() (DailyStockList, error) {
 	return DailyStockList{
 		Date:   raw.Date,
 		Open:   raw.Stat == "OK",
-		Stocks: raw.ParseStock(true),
+		Stocks: raw.ParseStock(),
 	}, nil
 }
 
 // [0:證券代號 1:證券名稱 2:成交股數 3:成交筆數 4:成交金額 5:開盤價 6:最高價 7:最低價 8:收盤價 9:漲跌(+/-) 10:漲跌價差 11:最後揭示買價 12:最後揭示買量 13:最後揭示賣價 14:最後揭示賣量 15:本益比]
-func (raw *DailyRawData) ParseStock(isResponse ...bool) []DailyStock {
-	sd := make([]DailyStock, 0, len(raw.Data()))
-	for _, s := range raw.Data() {
+func (raw *DailyRawData) ParseStock() []DailyStock {
+	sd := make([]DailyStock, 0, len(raw.StockData()))
+	for _, s := range raw.StockData() {
 		symbol := parseSymbol(s[9])
 		grade := s[10]
 		if symbol != " " {
 			grade = symbol + grade
 		}
-		idResponse, nameResponse := "", ""
-		if len(isResponse) != 0 && isResponse[0] {
-			idResponse, nameResponse = s[0], s[1]
-		}
 		sd = append(sd, DailyStock{
 			Date:         raw.Date,
 			ID:           s[0],
 			Name:         s[1],
-			IDResponse:   idResponse,
-			NameResponse: nameResponse,
-			TradeShare:   s[2],
-			TradeCount:   s[3],
-			TradeMoney:   s[4],
-			PriceOpen:    s[5],
-			PriceHighest: s[6],
-			PriceLowest:  s[7],
-			PriceClose:   s[8],
+			TradeShare:   util.Decimal(s[2]),
+			TradeCount:   util.Decimal(s[3]),
+			TradeMoney:   util.Decimal(s[4]),
+			PriceOpen:    util.Decimal(s[5]),
+			PriceHighest: util.Decimal(s[6]),
+			PriceLowest:  util.Decimal(s[7]),
+			PriceClose:   util.Decimal(s[8]),
 			TradeSymbol:  symbol,
-			TradeGrade:   grade,
+			TradeGrade:   util.Decimal(grade),
 			Percentage:   calculatePercentage(grade, s[5]),
 			Limit:        calculateLimit(s[8], grade),
 		})
@@ -120,16 +115,16 @@ func parseSymbol(s string) string {
 	return string(_regexpTradeSymbol.FindString(s)[0])
 }
 
-func calculatePercentage(gradeStr, openStr string) string {
+func calculatePercentage(gradeStr, openStr string) decimal.Decimal {
 	open, err := decimal.NewFromString(openStr)
 	if err != nil || open.IsZero() {
-		return decimal.Zero.String()
+		return decimal.Zero
 	}
 	grade, err := decimal.NewFromString(gradeStr)
 	if err != nil {
-		return decimal.Zero.String()
+		return decimal.Zero
 	}
-	return grade.Div(open).Shift(2).Round(2).Truncate(2).String()
+	return grade.Div(open).Shift(2).Round(2).Truncate(2)
 }
 
 func calculateLimit(closeStr, gradeStr string) bool {
@@ -216,21 +211,20 @@ func (DailyStockList) TableName() string {
 }
 
 type DailyStock struct {
-	Date         time.Time `gorm:"column:date;primaryKey" json:"date"`
-	ID, Name     string    `gorm:"-" json:"-"`
-	IDResponse   string    `gorm:"-" json:"id,omitempty"`
-	NameResponse string    `gorm:"-" json:"name,omitempty"`
-	TradeShare   string    `gorm:"not null" json:"tradeShare"`
-	TradeCount   string    `gorm:"not null" json:"tradeCount"`
-	TradeMoney   string    `gorm:"not null" json:"tradeMoney"`
-	PriceOpen    string    `gorm:"not null" json:"priceOpen"`
-	PriceHighest string    `gorm:"not null" json:"priceHighest"`
-	PriceLowest  string    `gorm:"not null" json:"priceLowest"`
-	PriceClose   string    `gorm:"not null" json:"priceClose"`
-	TradeSymbol  string    `gorm:"not null" json:"tradeSymbol"`
-	TradeGrade   string    `gorm:"not null" json:"tradeGrade"`
-	Percentage   string    `gorm:"not null" json:"percentage"`
-	Limit        bool      `gorm:"not null" json:"limit"`
+	Date         time.Time       `gorm:"column:date;primaryKey" json:"date"`
+	ID           string          `gorm:"-" json:"id,omitempty"`
+	Name         string          `gorm:"-" json:"name,omitempty"`
+	TradeShare   decimal.Decimal `gorm:"not null" json:"tradeShare"`
+	TradeCount   decimal.Decimal `gorm:"not null" json:"tradeCount"`
+	TradeMoney   decimal.Decimal `gorm:"not null" json:"tradeMoney"`
+	PriceOpen    decimal.Decimal `gorm:"not null" json:"priceOpen"`
+	PriceHighest decimal.Decimal `gorm:"not null" json:"priceHighest"`
+	PriceLowest  decimal.Decimal `gorm:"not null" json:"priceLowest"`
+	PriceClose   decimal.Decimal `gorm:"not null" json:"priceClose"`
+	TradeSymbol  string          `gorm:"not null" json:"tradeSymbol"`
+	TradeGrade   decimal.Decimal `gorm:"not null" json:"tradeGrade"`
+	Percentage   decimal.Decimal `gorm:"not null" json:"percentage"`
+	Limit        bool            `gorm:"not null" json:"limit"`
 }
 
 func (stock DailyStock) GetTableName() string {

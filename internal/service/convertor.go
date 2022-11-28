@@ -74,7 +74,7 @@ func (svc Service) convert(stockMap model.StockMap, raw model.DailyRaw, stockCha
 		return
 	}
 
-	if data.Stat != "OK" || len(data.Data()) == 0 {
+	if data.Stat != "OK" || len(data.StockData()) == 0 {
 		_ = svc.repo.InsertOpen(model.Open{
 			Date:   raw.Date,
 			IsOpen: false,

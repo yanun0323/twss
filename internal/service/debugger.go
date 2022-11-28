@@ -29,7 +29,7 @@ func (svc Service) debugDailyRawData(dateStr string) {
 
 	svc.l.Debugf("%+v", d.Date)
 	svc.l.Debugf("%+v", d.Fields8)
-	svc.l.Debugf("%+v", d.Data()[0])
+	svc.l.Debugf("%+v", d.StockData()[0])
 	svc.l.Debugf("%+v", d.ParseStock()[0])
 }
 
