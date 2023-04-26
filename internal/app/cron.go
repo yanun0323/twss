@@ -18,7 +18,7 @@ func CronJob(ctx context.Context, svc service.Service) {
 			svc.ConvertDailyRawData()
 		})
 		if err != nil {
-			l.Errorf("add daily raw data crawl cron job failed, %+v", err)
+			l.Errorf("add daily raw data crawl cron job , %+v", err)
 			return
 		}
 	}

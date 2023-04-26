@@ -11,20 +11,20 @@ func (svc Service) ConvertDailyRawData() {
 	svc.l.Info("start daily raw data convert ...")
 	stockMap, err := svc.repo.GetStockMap()
 	if err != nil {
-		svc.l.Errorf("get stock map failed, %+v", err)
+		svc.l.Errorf("get stock map , %+v", err)
 		return
 	}
 
 	date, err := svc.repo.GetLastOpenDate()
 	if err != nil {
-		svc.l.Errorf("get last open date failed, %+v", err)
+		svc.l.Errorf("get last open date , %+v", err)
 		return
 	}
 	date = date.Add(24 * time.Hour)
 
 	raws, err := svc.repo.ListDailyRaws(date, time.Now())
 	if err != nil {
-		svc.l.Errorf("list daily raws failed, %+v", err)
+		svc.l.Errorf("list daily raws , %+v", err)
 		return
 	}
 
@@ -42,7 +42,7 @@ func (svc Service) ConvertDailyRawData() {
 				inserterWP.Push(func() {
 					err := svc.repo.InsertDailyStockData(stock)
 					if err != nil {
-						svc.l.Errorf("%s, insert stock failed, %+v", util.LogDate(stock.Date), err)
+						svc.l.Errorf("%s, insert stock , %+v", util.LogDate(stock.Date), err)
 					}
 				})
 			case <-closeLooperChan:
@@ -70,7 +70,7 @@ func (svc Service) convert(stockMap model.StockMap, raw model.DailyRaw, stockCha
 	logDate := util.LogDate(raw.Date)
 	data, err := raw.GetData()
 	if err != nil {
-		svc.l.Errorf("%s, unmarshal daily raw data failed, %+v", logDate, err)
+		svc.l.Errorf("%s, unmarshal daily raw data , %+v", logDate, err)
 		return
 	}
 

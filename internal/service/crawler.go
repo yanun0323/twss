@@ -16,7 +16,7 @@ func (svc Service) CrawlDailyRawData() {
 	svc.l.Info("start daily raw data crawl ...")
 	last, err := svc.repo.GetLastDailyRawDate()
 	if err != nil {
-		svc.l.Errorf("get last daily raw date failed, %+v", err)
+		svc.l.Errorf("get last daily raw date , %+v", err)
 		return
 	}
 

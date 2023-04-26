@@ -22,11 +22,11 @@ func Run() {
 	case "check":
 		RunCheck(svc)
 	case "job":
-		RunJob(svc)
+		RunJobOnce(svc)
 	case "debug":
 		RunDebug(svc)
 	default:
-		RunJob(svc)
+		RunJobOnce(svc)
 		RunServer(ctx, svc)
 	}
 }
@@ -46,7 +46,7 @@ func RunCheck(svc service.Service) {
 	svc.CheckConverter()
 }
 
-func RunJob(svc service.Service) {
+func RunJobOnce(svc service.Service) {
 	svc.CrawlDailyRawData()
 	svc.ConvertDailyRawData()
 }

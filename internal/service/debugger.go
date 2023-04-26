@@ -18,12 +18,12 @@ func (svc Service) debugDailyRawData(dateStr string) {
 	date, _ := time.ParseInLocation("20060102", dateStr, time.Local)
 	raw, err := svc.repo.GetDailyRaw(date)
 	if err != nil {
-		svc.l.Errorf("get daily raw failed, %+v", err)
+		svc.l.Errorf("get daily raw , %+v", err)
 		return
 	}
 	d, err := raw.GetData()
 	if err != nil {
-		svc.l.Errorf("get data failed, %+v", err)
+		svc.l.Errorf("get data , %+v", err)
 		return
 	}
 
@@ -38,24 +38,24 @@ func (svc Service) debugRefactorStockList() {
 
 	stockMap, err := svc.repo.GetStockMap()
 	if err != nil {
-		svc.l.Errorf("get stock map failed, %+v", err)
+		svc.l.Errorf("get stock map , %+v", err)
 		return
 	}
 
 	lastOpen := model.Open{}
 	if err := db.Where("is_open = ?", true).Last(&lastOpen).Error; err != nil {
-		svc.l.Errorf("get last open date failed, %+v", err)
+		svc.l.Errorf("get last open date , %+v", err)
 		return
 	}
 	for id, name := range stockMap {
 		table := model.DailyStock{ID: id}.GetTableName()
 		start, last := model.DailyStock{}, model.DailyStock{}
 		if err := db.Table(table).First(&start).Error; err != nil {
-			svc.l.Errorf("%s, get stock first date failed, %+v", id, err)
+			svc.l.Errorf("%s, get stock first date , %+v", id, err)
 			return
 		}
 		if err := db.Table(table).Last(&last).Error; err != nil {
-			svc.l.Errorf("%s, get stock last date failed, %+v", id, err)
+			svc.l.Errorf("%s, get stock last date , %+v", id, err)
 			return
 		}
 		info := model.StockInfo{
@@ -69,7 +69,7 @@ func (svc Service) debugRefactorStockList() {
 			svc.l.Debugf("%s - %s Enable", id, name)
 		}
 		if err := db.Model(&info).Updates(info).Error; err != nil {
-			svc.l.Errorf("update stock list failed, %+v", err)
+			svc.l.Errorf("update stock list , %+v", err)
 			return
 		}
 	}

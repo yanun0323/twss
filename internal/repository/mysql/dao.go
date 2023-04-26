@@ -185,7 +185,7 @@ func (dao MysqlDao) GetLastDailyRawDate() (time.Time, error) {
 
 func (dao MysqlDao) GetDailyRaw(date time.Time) (model.DailyRaw, error) {
 	raw := model.DailyRaw{}
-	err := dao.db.Where("date = ?", date).Take(&raw).Error
+	err := dao.db.Table(raw.TableName()).Where("date = ?", date).Take(&raw).Error
 	if err != nil {
 		return model.DailyRaw{}, err
 	}

@@ -15,13 +15,13 @@ func (svc Service) RawDailyAPI(c echo.Context) error {
 	date, err := time.Parse("20060102", d)
 	svc.l.Debug(date)
 	if err != nil {
-		svc.l.Errorf("[%s] parse date '%s' failed, %+v", c.RealIP(), d, err)
+		svc.l.Errorf("[%s] parse date '%s' , %+v", c.RealIP(), d, err)
 		return c.JSON(http.StatusBadRequest, util.NewErrorResponse("invalid date format", err))
 	}
 
 	raw, err := svc.repo.GetDailyRaw(date)
 	if err != nil {
-		svc.l.Errorf("[%s] get daily raw failed, %+v", c.RealIP(), err)
+		svc.l.Errorf("[%s] get daily raw , %+v", c.RealIP(), err)
 		return c.JSON(http.StatusInternalServerError, util.NewErrorResponse("internal error", err))
 	}
 
@@ -33,19 +33,19 @@ func (svc Service) StockDailyAPI(c echo.Context) error {
 	d := c.Param("date")
 	date, err := time.Parse("20060102", d)
 	if err != nil {
-		svc.l.Errorf("[%s] parse date '%s' failed, %+v", c.RealIP(), d, err)
+		svc.l.Errorf("[%s] parse date '%s' , %+v", c.RealIP(), d, err)
 		return c.JSON(http.StatusBadRequest, util.NewErrorResponse("invalid date format", err))
 	}
 
 	raw, err := svc.repo.GetDailyRaw(date)
 	if err != nil {
-		svc.l.Errorf("[%s] get daily stock failed, %+v", c.RealIP(), err)
+		svc.l.Errorf("[%s] get daily stock , %+v", c.RealIP(), err)
 		return c.JSON(http.StatusInternalServerError, util.NewErrorResponse("internal error", err))
 	}
 
 	data, err := raw.GetData()
 	if err != nil {
-		svc.l.Errorf("[%s] get raw data failed, %+v", c.RealIP(), err)
+		svc.l.Errorf("[%s] get raw data , %+v", c.RealIP(), err)
 		return c.JSON(http.StatusInternalServerError, util.NewErrorResponse("internal error", err))
 	}
 
@@ -74,7 +74,7 @@ func (svc Service) StockAPI(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, util.NewErrorResponse("invalid stock id"))
 	}
 	if err != nil {
-		svc.l.Errorf("[%s] get stock failed, %+v", c.RealIP(), err)
+		svc.l.Errorf("[%s] get stock , %+v", c.RealIP(), err)
 		return c.JSON(http.StatusInternalServerError, util.NewErrorResponse("internal error", err))
 	}
 

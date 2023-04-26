@@ -10,7 +10,7 @@ import (
 func main() {
 	l := logs.New("stoker", 2)
 	if err := infra.Init("config"); err != nil {
-		l.Fatalf("init config failed, %+v", err)
+		l.Fatalf("init config , %+v", err)
 	}
 
 	app.Run()
