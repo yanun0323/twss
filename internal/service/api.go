@@ -19,7 +19,7 @@ func (svc Service) RawDailyAPI(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, util.NewErrorResponse("invalid date format", err))
 	}
 
-	raw, err := svc.repo.GetDailyRaw(date)
+	raw, err := svc.repo.GetTradeRaw(date)
 	if err != nil {
 		svc.l.Errorf("[%s] get daily raw , %+v", c.RealIP(), err)
 		return c.JSON(http.StatusInternalServerError, util.NewErrorResponse("internal error", err))
@@ -37,7 +37,7 @@ func (svc Service) StockDailyAPI(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, util.NewErrorResponse("invalid date format", err))
 	}
 
-	raw, err := svc.repo.GetDailyRaw(date)
+	raw, err := svc.repo.GetTradeRaw(date)
 	if err != nil {
 		svc.l.Errorf("[%s] get daily stock , %+v", c.RealIP(), err)
 		return c.JSON(http.StatusInternalServerError, util.NewErrorResponse("internal error", err))

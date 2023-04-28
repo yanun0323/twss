@@ -22,7 +22,7 @@ func (svc Service) ConvertDailyRawData() {
 	}
 	date = date.Add(24 * time.Hour)
 
-	raws, err := svc.repo.ListDailyRaws(date, time.Now())
+	raws, err := svc.repo.ListTradeRaws(date, time.Now())
 	if err != nil {
 		svc.l.Errorf("list daily raws , %+v", err)
 		return
@@ -66,7 +66,7 @@ func (svc Service) ConvertDailyRawData() {
 	svc.l.Info("all daily raw data converted!")
 }
 
-func (svc Service) convert(stockMap model.StockMap, raw model.DailyRaw, stockChan chan model.DailyStock) {
+func (svc Service) convert(stockMap model.StockMap, raw model.TradeRaw, stockChan chan model.DailyStock) {
 	logDate := util.LogDate(raw.Date)
 	data, err := raw.GetData()
 	if err != nil {

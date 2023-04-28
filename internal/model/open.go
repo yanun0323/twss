@@ -8,5 +8,5 @@ type Open struct {
 }
 
 func (Open) TableName() string {
-	return "open"
+	return "opens"
 }

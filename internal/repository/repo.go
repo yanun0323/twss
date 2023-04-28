@@ -10,8 +10,8 @@ type Repo struct {
 	mysql.MysqlDao
 }
 
-func New(ctx context.Context) domain.Repository {
+func New(ctx context.Context) (domain.Repository, error) {
 	return &Repo{
 		MysqlDao: mysql.New(ctx),
-	}
+	}, nil
 }

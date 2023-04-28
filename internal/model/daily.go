@@ -14,16 +14,16 @@ var (
 	_regexpTradeSymbol = regexp.MustCompile(".</p>$")
 )
 
-type DailyRaw struct {
+type TradeRaw struct {
 	Date time.Time `gorm:"column:date;primaryKey"`
 	Body []byte    `gorm:"column:body"`
 }
 
-func (DailyRaw) TableName() string {
-	return "daily_raw"
+func (TradeRaw) TableName() string {
+	return "trade_raws"
 }
 
-func (raw DailyRaw) GetData() (DailyRawData, error) {
+func (raw TradeRaw) GetData() (DailyRawData, error) {
 	data := DailyRawData{}
 	if err := json.Unmarshal([]byte(raw.Body), &data); err != nil {
 		return DailyRawData{}, err

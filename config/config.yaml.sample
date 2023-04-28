@@ -1,9 +1,16 @@
-# Local
+server.port: 8001
+
 mysql:
   username: "root" 
   password: ""
   host: "127.0.0.1"
   port: 3306
   database: "twss"
+
+mongo:
+  username: "local"
+  password: "local"
+  host: "localhost"
+  port: 27017
+  database: "twss"
   
-server.port: 8001

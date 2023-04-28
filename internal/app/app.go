@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"log"
 	"os"
 	"os/signal"
 	"stocker/internal/repository"
@@ -14,8 +15,12 @@ import (
 
 func Run() {
 	ctx := context.Background()
-	svc := service.New(ctx, repository.New(ctx))
+	repo, err := repository.New(ctx)
+	if err != nil {
+		log.Fatalf("init repository, err: %+v", err)
+	}
 
+	svc := service.New(ctx, repo)
 	mode := strings.ToLower(os.Getenv("MODE"))
 	logs.Get(ctx).Infof("MODE: %s", mode)
 	switch mode {
@@ -47,7 +52,7 @@ func RunCheck(svc service.Service) {
 }
 
 func RunJobOnce(svc service.Service) {
-	svc.CrawlDailyRawData()
+	svc.CrawlTradeRaw()
 	svc.ConvertDailyRawData()
 }
 

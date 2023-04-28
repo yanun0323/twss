@@ -17,9 +17,11 @@ type ServiceTestSuite struct {
 }
 
 func (su *ServiceTestSuite) SetupTest() {
-	su.Require().Nil(infra.Init("config"))
+	su.Require().Nil(infra.Init("config-test"))
 	su.ctx = context.Background()
-	su.svc = New(su.ctx, repository.New(su.ctx))
+	repo, err := repository.New(su.ctx)
+	su.Require().NoError(err)
+	su.svc = New(su.ctx, repo)
 }
 
 func TestServiceTestSuite(t *testing.T) {
@@ -29,5 +31,5 @@ func TestServiceTestSuite(t *testing.T) {
 func (su *ServiceTestSuite) TestCrawl() {
 	date, err := time.ParseInLocation("20060102", "20200501", time.Local)
 	su.Require().Nil(err)
-	su.Assert().Nil(su.svc.crawl(date))
+	su.Assert().Nil(su.svc.crawlTradeRaw(date))
 }

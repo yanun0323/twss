@@ -4,6 +4,10 @@ import (
 	"time"
 )
 
+const (
+	_STOCK_LIST_TABLE_NAME = "stock_list"
+)
+
 type StockInfo struct {
 	ID        string    `gorm:"column:id;primaryKey"`
 	Name      string    `gorm:"column:name;not null"`
@@ -13,13 +17,13 @@ type StockInfo struct {
 }
 
 func (StockInfo) TableName() string {
-	return "stock_list"
+	return _STOCK_LIST_TABLE_NAME
 }
 
 type StockList []StockInfo
 
 func (StockList) TableName() string {
-	return "stock_list"
+	return _STOCK_LIST_TABLE_NAME
 }
 
 func (l StockList) Map() StockMap {

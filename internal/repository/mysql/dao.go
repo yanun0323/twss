@@ -89,7 +89,7 @@ func connectDB(ctx context.Context) *gorm.DB {
 func (dao MysqlDao) AutoMigrate() {
 	_ = dao.db.AutoMigrate(
 		model.Open{},
-		model.DailyRaw{},
+		model.TradeRaw{},
 		model.StockInfo{},
 	)
 }
@@ -115,8 +115,8 @@ func (dao MysqlDao) CheckStock(date time.Time) error {
 	return dao.db.Table(table).Where("date = ?", date).Error
 }
 
-func (dao MysqlDao) ListDailyRaws(from, to time.Time) ([]model.DailyRaw, error) {
-	raws := []model.DailyRaw{}
+func (dao MysqlDao) ListTradeRaws(from, to time.Time) ([]model.TradeRaw, error) {
+	raws := []model.TradeRaw{}
 	err := dao.db.Where("date >= ? AND date <= ?", from, to).Find(&raws).Error
 	if err != nil {
 		return nil, err
@@ -171,8 +171,8 @@ func (dao MysqlDao) GetDefaultStartDate() (time.Time, error) {
 	return _defaultStartPreviousDate.Add(24 * time.Hour), nil
 }
 
-func (dao MysqlDao) GetLastDailyRawDate() (time.Time, error) {
-	raw := model.DailyRaw{}
+func (dao MysqlDao) GetLastTradeRawDate() (time.Time, error) {
+	raw := model.TradeRaw{}
 	err := dao.db.Select("date").Last(&raw).Error
 	if errors.Is(gorm.ErrRecordNotFound, err) {
 		return _defaultStartPreviousDate, nil
@@ -183,11 +183,11 @@ func (dao MysqlDao) GetLastDailyRawDate() (time.Time, error) {
 	return raw.Date, nil
 }
 
-func (dao MysqlDao) GetDailyRaw(date time.Time) (model.DailyRaw, error) {
-	raw := model.DailyRaw{}
+func (dao MysqlDao) GetTradeRaw(date time.Time) (model.TradeRaw, error) {
+	raw := model.TradeRaw{}
 	err := dao.db.Table(raw.TableName()).Where("date = ?", date).Take(&raw).Error
 	if err != nil {
-		return model.DailyRaw{}, err
+		return model.TradeRaw{}, err
 	}
 	return raw, nil
 }
@@ -200,7 +200,7 @@ func (dao MysqlDao) InsertOpen(open model.Open) error {
 	return nil
 }
 
-func (dao MysqlDao) InsertDailyRaw(raw model.DailyRaw) error {
+func (dao MysqlDao) InsertTradeRaw(raw model.TradeRaw) error {
 	err := dao.db.Create(raw).Error
 	if err != nil && isNotDuplicateEntryErr(err) {
 		return err

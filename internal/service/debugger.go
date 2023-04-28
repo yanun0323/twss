@@ -16,7 +16,7 @@ func (svc Service) Debug() {
 
 func (svc Service) debugDailyRawData(dateStr string) {
 	date, _ := time.ParseInLocation("20060102", dateStr, time.Local)
-	raw, err := svc.repo.GetDailyRaw(date)
+	raw, err := svc.repo.GetTradeRaw(date)
 	if err != nil {
 		svc.l.Errorf("get daily raw , %+v", err)
 		return

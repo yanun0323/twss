@@ -18,17 +18,17 @@ type DBRepository interface {
 	CheckOpen(time.Time) error
 	CheckStock(time.Time) error
 
-	ListDailyRaws(from, to time.Time) ([]model.DailyRaw, error)
+	ListTradeRaws(from, to time.Time) ([]model.TradeRaw, error)
 
 	GetLastOpenDate() (time.Time, error)
 	GetStockMap() (model.StockMap, error)
 	GetStock(id string) (model.Stock, error)
 	GetDefaultStartDate() (time.Time, error)
-	GetLastDailyRawDate() (time.Time, error)
-	GetDailyRaw(time.Time) (model.DailyRaw, error)
+	GetLastTradeRawDate() (time.Time, error)
+	GetTradeRaw(time.Time) (model.TradeRaw, error)
 
 	InsertOpen(model.Open) error
-	InsertDailyRaw(model.DailyRaw) error
+	InsertTradeRaw(model.TradeRaw) error
 	InsertStockList(model.StockInfo) error
 	InsertDailyStockData(model.DailyStock) error
 }

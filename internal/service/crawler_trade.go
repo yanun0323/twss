@@ -12,9 +12,9 @@ const (
 	_REQUEST_RETRY_TIMES     = 3
 )
 
-func (svc Service) CrawlDailyRawData() {
-	svc.l.Info("start daily raw data crawl ...")
-	last, err := svc.repo.GetLastDailyRawDate()
+func (svc Service) CrawlTradeRaw() {
+	svc.l.Info("start daily trade raw data crawl ...")
+	last, err := svc.repo.GetLastTradeRawDate()
 	if err != nil {
 		svc.l.Errorf("get last daily raw date , %+v", err)
 		return
@@ -27,7 +27,7 @@ func (svc Service) CrawlDailyRawData() {
 	svc.l.Debug("start crawl now  ", util.LogDate(now))
 	for ; date.Before(now); date = date.Add(24 * time.Hour) {
 		for r := _REQUEST_RETRY_TIMES; r >= 0; r-- {
-			err := svc.crawl(date)
+			err := svc.crawlTradeRaw(date)
 			if err == nil {
 				break
 			}
@@ -41,7 +41,7 @@ func (svc Service) CrawlDailyRawData() {
 	svc.l.Info("all daily raw data is update to date!")
 }
 
-func (svc Service) crawl(date time.Time) error {
+func (svc Service) crawlTradeRaw(date time.Time) error {
 	defer time.Sleep(_API_LIMIT_INTERVAL_TIME)
 	logDate := util.LogDate(date)
 	svc.l.Infof("--- start crawl %s ---", logDate)
@@ -52,12 +52,12 @@ func (svc Service) crawl(date time.Time) error {
 		return err
 	}
 
-	raw := model.DailyRaw{
+	raw := model.TradeRaw{
 		Date: date,
 		Body: body,
 	}
 
-	if err := svc.repo.InsertDailyRaw(raw); err != nil {
+	if err := svc.repo.InsertTradeRaw(raw); err != nil {
 		return err
 	}
 	svc.l.Infof("crawl success %s, data size: %d", logDate, len(body))

@@ -17,7 +17,7 @@ func (svc Service) CheckDailyRaw() {
 	now := date.UTC()
 	for ; date.Before(now); date = date.UTC().Add(24 * time.Hour) {
 		count++
-		_, err := svc.repo.GetDailyRaw(date)
+		_, err := svc.repo.GetTradeRaw(date)
 		svc.l.Infof("Date: %s", date.Format("2006-01-02 15:04:05 Z07:00"))
 		if errors.Is(svc.repo.ErrRecordNotFound(), err) {
 			svc.l.Errorf("%s, found missing daily raw", util.LogDate(date))
