@@ -67,6 +67,13 @@ func (svc Service) CheckConverter(repair bool) {
 			continue
 		}
 	}
+
+	if repair && count != 0 {
+		if err := svc.storeStockMap(); err != nil {
+			svc.l.Errorf("store stock map, err: %+v", err)
+		}
+	}
+
 	svc.l.Infof("checked data count: %d", count)
 	svc.l.Info("check trade raw data converter done!")
 }

@@ -23,7 +23,7 @@ const (
 )
 
 var (
-	_defaultStartPreviousDate = time.Date(2004, time.February, 10, 0, 0, 0, 0, time.Local)
+	_defaultStartPreviousDate = time.Date(2004, time.February, 10, 0, 0, 0, 0, time.UTC)
 	_txKey                    = struct{}{}
 )
 

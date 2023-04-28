@@ -5,6 +5,8 @@ import (
 	"stocker/internal/model"
 	"stocker/internal/util"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 func (svc Service) CrawlRawEps() {
@@ -44,7 +46,7 @@ func (svc Service) crawlRawEps(date time.Time) error {
 	url := fmt.Sprintf("https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d?date=%s&selectType=ALL&response=json", util.FormatToUrlDate(date))
 	body, err := util.GetRequest(url)
 	if err != nil {
-		return err
+		return errors.Errorf("get request, err: %+v", err)
 	}
 
 	raw := model.RawEps{
@@ -53,7 +55,7 @@ func (svc Service) crawlRawEps(date time.Time) error {
 	}
 
 	if err := svc.repo.InsertRawEps(svc.ctx, raw); err != nil {
-		return err
+		return errors.Errorf("insert raw eps, err: %+v", err)
 	}
 	svc.l.Infof("crawl success %s, data size: %d", logDate, len(body))
 	return nil

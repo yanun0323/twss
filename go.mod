@@ -11,7 +11,7 @@ require (
 	github.com/shopspring/decimal v1.3.1
 	github.com/spf13/viper v1.13.0
 	github.com/stretchr/testify v1.8.0
-	github.com/yanun0323/pkg v1.0.6
+	github.com/yanun0323/pkg v1.0.7
 	gorm.io/driver/mysql v1.4.4
 	gorm.io/gorm v1.24.1
 )

@@ -10,14 +10,14 @@ import (
 )
 
 type Job interface {
-	Run()
+	Do()
 }
 
 type jobWrapper struct {
 	action func()
 }
 
-func (j jobWrapper) Run() {
+func (j jobWrapper) Do() {
 	j.action()
 }
 
@@ -50,7 +50,7 @@ func (w *WorkerPool) Run() {
 			for {
 				select {
 				case j := <-w.jobs:
-					j.Run()
+					j.Do()
 				case <-w.ctx.Done():
 					return
 				}

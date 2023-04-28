@@ -5,6 +5,8 @@ import (
 	"stocker/internal/model"
 	"stocker/internal/util"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -49,7 +51,7 @@ func (svc Service) crawlRawTrade(date time.Time) error {
 	url := fmt.Sprintf("https://www.twse.com.tw/exchangeReport/MI_INDEX?response=json&date=%s&type=ALLBUT0999", util.FormatToUrlDate(date))
 	body, err := util.GetRequest(url)
 	if err != nil {
-		return err
+		return errors.Errorf("get request, err: %+v", err)
 	}
 
 	raw := model.RawTrade{
@@ -58,7 +60,7 @@ func (svc Service) crawlRawTrade(date time.Time) error {
 	}
 
 	if err := svc.repo.InsertRawTrade(svc.ctx, raw); err != nil {
-		return err
+		return errors.Errorf("insert raw trade, err: %+v", err)
 	}
 	svc.l.Infof("crawl success %s, data size: %d", logDate, len(body))
 	return nil
