@@ -22,7 +22,7 @@ func (svc Service) ConvertDailyRawData() {
 	}
 	date = date.Add(24 * time.Hour)
 
-	raws, err := svc.repo.ListTradeRaws(date, time.Now())
+	raws, err := svc.repo.ListRawTrades(date, time.Now())
 	if err != nil {
 		svc.l.Errorf("list daily raws , %+v", err)
 		return
@@ -30,7 +30,7 @@ func (svc Service) ConvertDailyRawData() {
 
 	inserterWP := util.NewWorkerPool("InsertDailyStock", 150)
 	inserterWP.Run()
-	stockChan := make(chan model.DailyStock, 150)
+	stockChan := make(chan model.Stock, 150)
 	closeLooperChan := make(chan struct{}, 1)
 	var looperWG sync.WaitGroup
 	looperWG.Add(1)
@@ -40,7 +40,7 @@ func (svc Service) ConvertDailyRawData() {
 			select {
 			case stock := <-stockChan:
 				inserterWP.Push(func() {
-					err := svc.repo.InsertDailyStockData(stock)
+					err := svc.repo.InsertStock(stock)
 					if err != nil {
 						svc.l.Errorf("%s, insert stock , %+v", util.LogDate(stock.Date), err)
 					}
@@ -66,7 +66,7 @@ func (svc Service) ConvertDailyRawData() {
 	svc.l.Info("all daily raw data converted!")
 }
 
-func (svc Service) convert(stockMap model.StockMap, raw model.TradeRaw, stockChan chan model.DailyStock) {
+func (svc Service) convert(stockMap model.StockMap, raw model.RawTrade, stockChan chan model.Stock) {
 	logDate := util.LogDate(raw.Date)
 	data, err := raw.GetData()
 	if err != nil {
@@ -86,7 +86,7 @@ func (svc Service) convert(stockMap model.StockMap, raw model.TradeRaw, stockCha
 	for _, stock := range stocks {
 		if _, exist := stockMap[stock.ID]; !exist {
 			stockMap[stock.ID] = stock.Name
-			_ = svc.repo.InsertStockList(model.StockInfo{
+			_ = svc.repo.InsertStockList(model.StockListUnit{
 				ID:   stock.ID,
 				Name: stock.Name,
 			})

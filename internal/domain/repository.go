@@ -8,29 +8,41 @@ import (
 )
 
 type Repository interface {
-	DBRepository
+	CommonRepository
+	OpenRepository
+	RawRepository
+	StockRepository
+
 	DebugRepository
 }
 
-type DBRepository interface {
+type CommonRepository interface {
 	ErrRecordNotFound() error
 
-	CheckOpen(time.Time) error
-	CheckStock(time.Time) error
-
-	ListTradeRaws(from, to time.Time) ([]model.TradeRaw, error)
-
-	GetLastOpenDate() (time.Time, error)
-	GetStockMap() (model.StockMap, error)
-	GetStock(id string) (model.Stock, error)
 	GetDefaultStartDate() (time.Time, error)
-	GetLastTradeRawDate() (time.Time, error)
-	GetTradeRaw(time.Time) (model.TradeRaw, error)
 
+	InsertStockList(model.StockListUnit) error
+}
+
+type OpenRepository interface {
+	CheckOpen(time.Time) error
+	GetLastOpenDate() (time.Time, error)
 	InsertOpen(model.Open) error
-	InsertTradeRaw(model.TradeRaw) error
-	InsertStockList(model.StockInfo) error
-	InsertDailyStockData(model.DailyStock) error
+}
+
+type RawRepository interface {
+	ListRawTrades(from, to time.Time) ([]model.RawTrade, error)
+	GetLastRawTradeDate() (time.Time, error)
+	GetRawTrade(time.Time) (model.RawTrade, error)
+	InsertRawTrade(model.RawTrade) error
+
+	// ListEpsRaws(from, to time.Time) ([]model.EpsRaw, error)
+}
+
+type StockRepository interface {
+	CheckStock(time.Time) error
+	GetStockMap() (model.StockMap, error)
+	InsertStock(model.Stock) error
 }
 
 type DebugRepository interface {

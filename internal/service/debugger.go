@@ -16,7 +16,7 @@ func (svc Service) Debug() {
 
 func (svc Service) debugDailyRawData(dateStr string) {
 	date, _ := time.ParseInLocation("20060102", dateStr, time.Local)
-	raw, err := svc.repo.GetTradeRaw(date)
+	raw, err := svc.repo.GetRawTrade(date)
 	if err != nil {
 		svc.l.Errorf("get daily raw , %+v", err)
 		return
@@ -48,8 +48,8 @@ func (svc Service) debugRefactorStockList() {
 		return
 	}
 	for id, name := range stockMap {
-		table := model.DailyStock{ID: id}.GetTableName()
-		start, last := model.DailyStock{}, model.DailyStock{}
+		table := model.Stock{ID: id}.GetTableName()
+		start, last := model.Stock{}, model.Stock{}
 		if err := db.Table(table).First(&start).Error; err != nil {
 			svc.l.Errorf("%s, get stock first date , %+v", id, err)
 			return
@@ -58,7 +58,7 @@ func (svc Service) debugRefactorStockList() {
 			svc.l.Errorf("%s, get stock last date , %+v", id, err)
 			return
 		}
-		info := model.StockInfo{
+		info := model.StockListUnit{
 			ID:        id,
 			Name:      name,
 			FirstDate: start.Date,

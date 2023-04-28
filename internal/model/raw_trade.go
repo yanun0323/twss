@@ -14,25 +14,27 @@ var (
 	_regexpTradeSymbol = regexp.MustCompile(".</p>$")
 )
 
-type TradeRaw struct {
+// RawTrade 爬蟲的每日交易
+type RawTrade struct {
 	Date time.Time `gorm:"column:date;primaryKey"`
 	Body []byte    `gorm:"column:body"`
 }
 
-func (TradeRaw) TableName() string {
-	return "trade_raws"
+func (RawTrade) TableName() string {
+	return "raw_trade"
 }
 
-func (raw TradeRaw) GetData() (DailyRawData, error) {
-	data := DailyRawData{}
+func (raw RawTrade) GetData() (RawTradeData, error) {
+	data := RawTradeData{}
 	if err := json.Unmarshal([]byte(raw.Body), &data); err != nil {
-		return DailyRawData{}, err
+		return RawTradeData{}, err
 	}
 	data.Date = raw.Date
 	return data, nil
 }
 
-type DailyRawData struct {
+// RawTradeData 爬蟲的每日交易解析後資料
+type RawTradeData struct {
 	Date      time.Time       `gorm:"column:date;primaryKey" json:"-"`
 	Stat      string          `json:"stat,omitempty"`
 	Title     string          `json:"title,omitempty"`
@@ -66,7 +68,7 @@ type DailyRawData struct {
 	Notes     []string        `json:"notes,omitempty"`
 }
 
-func (raw *DailyRawData) StockData() [][]string {
+func (raw *RawTradeData) StockData() [][]string {
 	// data8: before 2011/7/31
 	// data9: '2006/09/29' and after 2011/7/31
 	if len(raw.Data9) > len(raw.Data8) {
@@ -74,24 +76,17 @@ func (raw *DailyRawData) StockData() [][]string {
 	}
 	return raw.Data8
 }
-func (raw *DailyRawData) ParseStockList() (DailyStockList, error) {
-	return DailyStockList{
-		Date:   raw.Date,
-		Open:   raw.Stat == "OK",
-		Stocks: raw.ParseStock(),
-	}, nil
-}
 
 // [0:證券代號 1:證券名稱 2:成交股數 3:成交筆數 4:成交金額 5:開盤價 6:最高價 7:最低價 8:收盤價 9:漲跌(+/-) 10:漲跌價差 11:最後揭示買價 12:最後揭示買量 13:最後揭示賣價 14:最後揭示賣量 15:本益比]
-func (raw *DailyRawData) ParseStock() []DailyStock {
-	sd := make([]DailyStock, 0, len(raw.StockData()))
+func (raw *RawTradeData) ParseStock() []Stock {
+	sd := make([]Stock, 0, len(raw.StockData()))
 	for _, s := range raw.StockData() {
 		symbol := parseSymbol(s[9])
 		grade := s[10]
 		if symbol != " " {
 			grade = symbol + grade
 		}
-		sd = append(sd, DailyStock{
+		sd = append(sd, Stock{
 			Date:         raw.Date,
 			ID:           s[0],
 			Name:         s[1],
@@ -198,35 +193,4 @@ func priceThreshold(price decimal.Decimal) (decimal.Decimal, int32) {
 		return _thousandThreshold, 0
 	}
 	return _otherThreshold, 0
-}
-
-type DailyStockList struct {
-	Date   time.Time    `gorm:"primaryKey" json:"date"`
-	Open   bool         `gorm:"not null" json:"open"`
-	Stocks []DailyStock `gorm:"not null" json:"stock"`
-}
-
-func (DailyStockList) TableName() string {
-	return "daily_stock"
-}
-
-type DailyStock struct {
-	Date         time.Time       `gorm:"column:date;primaryKey" json:"date"`
-	ID           string          `gorm:"-" json:"id,omitempty"`
-	Name         string          `gorm:"-" json:"name,omitempty"`
-	TradeShare   decimal.Decimal `gorm:"not null" json:"tradeShare"`
-	TradeCount   decimal.Decimal `gorm:"not null" json:"tradeCount"`
-	TradeMoney   decimal.Decimal `gorm:"not null" json:"tradeMoney"`
-	PriceOpen    decimal.Decimal `gorm:"not null" json:"priceOpen"`
-	PriceHighest decimal.Decimal `gorm:"not null" json:"priceHighest"`
-	PriceLowest  decimal.Decimal `gorm:"not null" json:"priceLowest"`
-	PriceClose   decimal.Decimal `gorm:"not null" json:"priceClose"`
-	TradeSymbol  string          `gorm:"not null" json:"tradeSymbol"`
-	TradeGrade   decimal.Decimal `gorm:"not null" json:"tradeGrade"`
-	Percentage   decimal.Decimal `gorm:"not null" json:"percentage"`
-	Limit        bool            `gorm:"not null" json:"limit"`
-}
-
-func (stock DailyStock) GetTableName() string {
-	return "stock_" + stock.ID
 }

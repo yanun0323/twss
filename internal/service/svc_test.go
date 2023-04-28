@@ -31,5 +31,5 @@ func TestServiceTestSuite(t *testing.T) {
 func (su *ServiceTestSuite) TestCrawl() {
 	date, err := time.ParseInLocation("20060102", "20200501", time.Local)
 	su.Require().Nil(err)
-	su.Assert().Nil(su.svc.crawlTradeRaw(date))
+	su.Assert().Nil(su.svc.crawlRawTrade(date))
 }

@@ -89,8 +89,8 @@ func connectDB(ctx context.Context) *gorm.DB {
 func (dao MysqlDao) AutoMigrate() {
 	_ = dao.db.AutoMigrate(
 		model.Open{},
-		model.TradeRaw{},
-		model.StockInfo{},
+		model.RawTrade{},
+		model.StockListUnit{},
 	)
 }
 
@@ -111,12 +111,12 @@ func (dao MysqlDao) CheckOpen(date time.Time) error {
 }
 
 func (dao MysqlDao) CheckStock(date time.Time) error {
-	table := model.DailyStock{ID: "2330"}.GetTableName()
+	table := model.Stock{ID: "2330"}.GetTableName()
 	return dao.db.Table(table).Where("date = ?", date).Error
 }
 
-func (dao MysqlDao) ListTradeRaws(from, to time.Time) ([]model.TradeRaw, error) {
-	raws := []model.TradeRaw{}
+func (dao MysqlDao) ListRawTrades(from, to time.Time) ([]model.RawTrade, error) {
+	raws := []model.RawTrade{}
 	err := dao.db.Where("date >= ? AND date <= ?", from, to).Find(&raws).Error
 	if err != nil {
 		return nil, err
@@ -145,34 +145,12 @@ func (dao MysqlDao) GetStockMap() (model.StockMap, error) {
 	return list.Map(), nil
 }
 
-func (dao MysqlDao) GetStock(id string) (model.Stock, error) {
-	info := model.StockInfo{}
-	data := []model.DailyStock{}
-
-	if err := dao.db.Where("id = ?", id).Take(&info).Error; err != nil {
-		return model.Stock{}, err
-	}
-
-	if err := dao.db.Table(model.DailyStock{ID: id}.GetTableName()).Find(&data).Error; err != nil {
-		return model.Stock{}, err
-	}
-
-	return model.Stock{
-		ID:        info.ID,
-		Name:      info.Name,
-		FirstDate: info.FirstDate,
-		LastDate:  info.LastDate,
-		Unable:    info.Unable,
-		Trading:   data,
-	}, nil
-}
-
 func (dao MysqlDao) GetDefaultStartDate() (time.Time, error) {
 	return _defaultStartPreviousDate.Add(24 * time.Hour), nil
 }
 
-func (dao MysqlDao) GetLastTradeRawDate() (time.Time, error) {
-	raw := model.TradeRaw{}
+func (dao MysqlDao) GetLastRawTradeDate() (time.Time, error) {
+	raw := model.RawTrade{}
 	err := dao.db.Select("date").Last(&raw).Error
 	if errors.Is(gorm.ErrRecordNotFound, err) {
 		return _defaultStartPreviousDate, nil
@@ -183,11 +161,11 @@ func (dao MysqlDao) GetLastTradeRawDate() (time.Time, error) {
 	return raw.Date, nil
 }
 
-func (dao MysqlDao) GetTradeRaw(date time.Time) (model.TradeRaw, error) {
-	raw := model.TradeRaw{}
+func (dao MysqlDao) GetRawTrade(date time.Time) (model.RawTrade, error) {
+	raw := model.RawTrade{}
 	err := dao.db.Table(raw.TableName()).Where("date = ?", date).Take(&raw).Error
 	if err != nil {
-		return model.TradeRaw{}, err
+		return model.RawTrade{}, err
 	}
 	return raw, nil
 }
@@ -200,7 +178,7 @@ func (dao MysqlDao) InsertOpen(open model.Open) error {
 	return nil
 }
 
-func (dao MysqlDao) InsertTradeRaw(raw model.TradeRaw) error {
+func (dao MysqlDao) InsertRawTrade(raw model.RawTrade) error {
 	err := dao.db.Create(raw).Error
 	if err != nil && isNotDuplicateEntryErr(err) {
 		return err
@@ -208,7 +186,7 @@ func (dao MysqlDao) InsertTradeRaw(raw model.TradeRaw) error {
 	return nil
 }
 
-func (dao MysqlDao) InsertStockList(info model.StockInfo) error {
+func (dao MysqlDao) InsertStockList(info model.StockListUnit) error {
 	err := dao.db.Create(info).Error
 	if err != nil && isNotDuplicateEntryErr(err) {
 		return err
@@ -216,7 +194,7 @@ func (dao MysqlDao) InsertStockList(info model.StockInfo) error {
 	return nil
 }
 
-func (dao MysqlDao) InsertDailyStockData(stock model.DailyStock) error {
+func (dao MysqlDao) InsertStock(stock model.Stock) error {
 	table := stock.GetTableName()
 	dao.Migrate(table, stock)
 

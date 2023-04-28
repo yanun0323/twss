@@ -52,7 +52,7 @@ func RunCheck(svc service.Service) {
 }
 
 func RunJobOnce(svc service.Service) {
-	svc.CrawlTradeRaw()
+	svc.CrawlRawTrade()
 	svc.ConvertDailyRawData()
 }
 
