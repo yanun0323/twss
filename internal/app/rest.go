@@ -21,7 +21,7 @@ func APIServer(ctx context.Context, svc service.Service) {
 		l.Infof("[%s] health check succeed", c.RealIP())
 		return c.JSON(http.StatusOK, util.NewMsgResponse("health check succeed :)"))
 	})
-	api.GET("/daily/raw/:date", svc.TradeRawAPI)
+	api.GET("/raw/trade/:date", svc.TradeRawAPI)
 
 	port := ":" + viper.GetString("server.port")
 	go e.Start(port)

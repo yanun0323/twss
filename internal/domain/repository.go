@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"stocker/internal/model"
 	"time"
 
@@ -9,42 +10,48 @@ import (
 
 type Repository interface {
 	CommonRepository
-	OpenRepository
-	RawRepository
 	StockRepository
+	RawRepository
+	TradeDateRepository
+	TradeRepository
 
 	DebugRepository
 }
 
 type CommonRepository interface {
-	ErrRecordNotFound() error
-
+	Tx(ctx context.Context, fc func(txCtx context.Context) error) error
+	IsErrRecordNotFound(err error) bool
 	GetDefaultStartDate() (time.Time, error)
-
-	InsertStockList(model.StockListUnit) error
-}
-
-type OpenRepository interface {
-	CheckOpen(time.Time) error
-	GetLastOpenDate() (time.Time, error)
-	InsertOpen(model.Open) error
-}
-
-type RawRepository interface {
-	ListRawTrades(from, to time.Time) ([]model.RawTrade, error)
-	GetLastRawTradeDate() (time.Time, error)
-	GetRawTrade(time.Time) (model.RawTrade, error)
-	InsertRawTrade(model.RawTrade) error
-
-	// ListEpsRaws(from, to time.Time) ([]model.EpsRaw, error)
 }
 
 type StockRepository interface {
-	CheckStock(time.Time) error
-	GetStockMap() (model.StockMap, error)
-	InsertStock(model.Stock) error
+	ListStocks(context.Context) ([]model.Stock, error)
+	InsertStock(context.Context, model.Stock) error
+}
+
+type RawRepository interface {
+	ListRawTrade(ctx context.Context, from, to time.Time) ([]model.RawTrade, error)
+	GetLastRawTradeDate(context.Context) (time.Time, error)
+	GetRawTrade(context.Context, time.Time) (model.RawTrade, error)
+	InsertRawTrade(context.Context, model.RawTrade) error
+
+	ListRawEps(ctx context.Context, from, to time.Time) ([]model.RawEps, error)
+	GetLastRawEpsDate(context.Context) (time.Time, error)
+	GetRawEps(context.Context, time.Time) (model.RawEps, error)
+	InsertRawEps(context.Context, model.RawEps) error
+}
+
+type TradeRepository interface {
+	CheckTrade(context.Context, time.Time) error
+	InsertTrade(context.Context, model.Trade) error
+}
+
+type TradeDateRepository interface {
+	CheckTradeDate(context.Context, time.Time) error
+	GetLastTradeDate(context.Context) (time.Time, error)
+	InsertTradeDate(context.Context, model.TradeDate) error
 }
 
 type DebugRepository interface {
-	Debug() *gorm.DB
+	Debug(context.Context) *gorm.DB
 }

@@ -1,8 +1,10 @@
-.PHONY: run check job debug
+.PHONY: run check check.repair job debug
 run:
 	MODE=server go run main.go
 check:
 	MODE=check go run main.go
+check.repair:
+	MODE=check_repair go run main.go
 job:
 	MODE=job go run main.go
 debug:

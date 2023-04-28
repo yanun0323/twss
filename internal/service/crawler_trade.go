@@ -13,8 +13,8 @@ const (
 )
 
 func (svc Service) CrawlRawTrade() {
-	svc.l.Info("start daily trade raw data crawl ...")
-	last, err := svc.repo.GetLastRawTradeDate()
+	svc.l.Info("start trade raw data crawl ...")
+	last, err := svc.repo.GetLastRawTradeDate(svc.ctx)
 	if err != nil {
 		svc.l.Errorf("get last trade raw date , %+v", err)
 		return
@@ -38,14 +38,14 @@ func (svc Service) CrawlRawTrade() {
 			svc.l.Warnf("crawl failed, retry in 3 second, remain %d times, %+v", r, err)
 		}
 	}
-	svc.l.Info("all daily raw data is update to date!")
+	svc.l.Info("all trade raw data is update to date!")
 }
 
 func (svc Service) crawlRawTrade(date time.Time) error {
 	defer time.Sleep(_API_LIMIT_INTERVAL_TIME)
 	logDate := util.LogDate(date)
 	svc.l.Infof("--- start crawl %s ---", logDate)
-
+	//https://www.twse.com.tw/exchangeReport/MI_INDEX?response=json&date=20230428&type=ALLBUT0999
 	url := fmt.Sprintf("https://www.twse.com.tw/exchangeReport/MI_INDEX?response=json&date=%s&type=ALLBUT0999", util.FormatToUrlDate(date))
 	body, err := util.GetRequest(url)
 	if err != nil {
@@ -57,7 +57,7 @@ func (svc Service) crawlRawTrade(date time.Time) error {
 		Body: body,
 	}
 
-	if err := svc.repo.InsertRawTrade(raw); err != nil {
+	if err := svc.repo.InsertRawTrade(svc.ctx, raw); err != nil {
 		return err
 	}
 	svc.l.Infof("crawl success %s, data size: %d", logDate, len(body))

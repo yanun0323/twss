@@ -20,12 +20,18 @@ func Run() {
 		log.Fatalf("init repository, err: %+v", err)
 	}
 
-	svc := service.New(ctx, repo)
+	svc, err := service.New(ctx, repo)
+	if err != nil {
+		log.Fatalf("init service, err: %+v", err)
+	}
+
 	mode := strings.ToLower(os.Getenv("MODE"))
 	logs.Get(ctx).Infof("MODE: %s", mode)
 	switch mode {
 	case "check":
 		RunCheck(svc)
+	case "check_repair":
+		RunCheckRepair(svc)
 	case "job":
 		RunJobOnce(svc)
 	case "debug":
@@ -47,13 +53,18 @@ func RunServer(ctx context.Context, svc service.Service) {
 }
 
 func RunCheck(svc service.Service) {
-	svc.CheckDailyRaw()
-	svc.CheckConverter()
+	svc.CheckTradeRaw(false)
+	svc.CheckConverter(false)
+}
+
+func RunCheckRepair(svc service.Service) {
+	svc.CheckTradeRaw(true)
+	svc.CheckConverter(true)
 }
 
 func RunJobOnce(svc service.Service) {
 	svc.CrawlRawTrade()
-	svc.ConvertDailyRawData()
+	svc.ConvertRawTrade()
 }
 
 func RunDebug(svc service.Service) {

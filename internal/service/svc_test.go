@@ -21,7 +21,8 @@ func (su *ServiceTestSuite) SetupTest() {
 	su.ctx = context.Background()
 	repo, err := repository.New(su.ctx)
 	su.Require().NoError(err)
-	su.svc = New(su.ctx, repo)
+	su.svc, err = New(su.ctx, repo)
+	su.Require().NoError(err)
 }
 
 func TestServiceTestSuite(t *testing.T) {

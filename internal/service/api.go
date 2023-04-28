@@ -17,12 +17,12 @@ func (svc Service) TradeRawAPI(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, util.NewErrorResponse("invalid date format", err))
 	}
 
-	raw, err := svc.repo.GetRawTrade(date)
+	raw, err := svc.repo.GetRawTrade(svc.ctx, date)
 	if err != nil {
-		svc.l.Errorf("[%s] get daily raw , %+v", c.RealIP(), err)
+		svc.l.Errorf("[%s] get trade raw , %+v", c.RealIP(), err)
 		return c.JSON(http.StatusInternalServerError, util.NewErrorResponse("internal error", err))
 	}
 
-	svc.l.Infof("[%s] get daily raw succeed", c.RealIP())
-	return c.JSON(http.StatusOK, util.NewDataResponse("get daily raw data succeed", string(raw.Body)))
+	svc.l.Infof("[%s] get trade raw succeed", c.RealIP())
+	return c.JSON(http.StatusOK, util.NewDataResponse("get trade raw data succeed", string(raw.Body)))
 }

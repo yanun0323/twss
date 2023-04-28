@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/yanun0323/pkg/logs"
 	sql "gorm.io/driver/mysql"
@@ -24,6 +24,7 @@ const (
 
 var (
 	_defaultStartPreviousDate = time.Date(2004, time.February, 10, 0, 0, 0, 0, time.Local)
+	_txKey                    = struct{}{}
 )
 
 type MysqlDao struct {
@@ -88,9 +89,10 @@ func connectDB(ctx context.Context) *gorm.DB {
 
 func (dao MysqlDao) AutoMigrate() {
 	_ = dao.db.AutoMigrate(
-		model.Open{},
+		model.TradeDate{},
+		model.RawEps{},
 		model.RawTrade{},
-		model.StockListUnit{},
+		model.Stock{},
 	)
 }
 
@@ -98,111 +100,37 @@ func (dao MysqlDao) Migrate(table string, dst interface{}) {
 	_ = dao.db.Table(table).AutoMigrate(dst)
 }
 
-func (dao MysqlDao) Debug() *gorm.DB {
-	return dao.db
+func (dao MysqlDao) Debug(ctx context.Context) *gorm.DB {
+	return dao.GetDriver(ctx)
 }
 
-func (dao MysqlDao) ErrRecordNotFound() error {
-	return gorm.ErrRecordNotFound
+func (dao MysqlDao) Tx(ctx context.Context, fc func(txCtx context.Context) error) error {
+	return dao.db.Transaction(func(tx *gorm.DB) error {
+		_, ok := ctx.Value(_txKey).(*gorm.DB)
+		if ok {
+			return errors.New("transaction already exist")
+		}
+
+		txCtx := context.WithValue(ctx, _txKey, tx)
+		return fc(txCtx)
+	})
 }
 
-func (dao MysqlDao) CheckOpen(date time.Time) error {
-	return dao.db.Table(model.Open{}.TableName()).Where("date = ?", date).Error
-}
-
-func (dao MysqlDao) CheckStock(date time.Time) error {
-	table := model.Stock{ID: "2330"}.GetTableName()
-	return dao.db.Table(table).Where("date = ?", date).Error
-}
-
-func (dao MysqlDao) ListRawTrades(from, to time.Time) ([]model.RawTrade, error) {
-	raws := []model.RawTrade{}
-	err := dao.db.Where("date >= ? AND date <= ?", from, to).Find(&raws).Error
-	if err != nil {
-		return nil, err
-	}
-	return raws, nil
-}
-
-func (dao MysqlDao) GetLastOpenDate() (time.Time, error) {
-	open := model.Open{}
-	if dao.db.Select("date").Last(&open).Error == nil {
-		logs.Get(dao.ctx).Debug(open.Date)
-		return open.Date, nil
-	}
-	return _defaultStartPreviousDate, nil
-}
-
-func (dao MysqlDao) GetStockMap() (model.StockMap, error) {
-	list := model.StockList{}
-	err := dao.db.Table(list.TableName()).Find(&list).Error
-	if errors.Is(gorm.ErrRecordNotFound, err) {
-		return model.StockMap{}, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return list.Map(), nil
+func (dao MysqlDao) IsErrRecordNotFound(err error) bool {
+	return errors.Is(gorm.ErrRecordNotFound, err)
 }
 
 func (dao MysqlDao) GetDefaultStartDate() (time.Time, error) {
 	return _defaultStartPreviousDate.Add(24 * time.Hour), nil
 }
 
-func (dao MysqlDao) GetLastRawTradeDate() (time.Time, error) {
-	raw := model.RawTrade{}
-	err := dao.db.Select("date").Last(&raw).Error
-	if errors.Is(gorm.ErrRecordNotFound, err) {
-		return _defaultStartPreviousDate, nil
+func (dao MysqlDao) GetDriver(ctx context.Context) *gorm.DB {
+	db, ok := ctx.Value(_txKey).(*gorm.DB)
+	if ok {
+		return db
 	}
-	if err != nil {
-		return time.Time{}, err
-	}
-	return raw.Date, nil
-}
 
-func (dao MysqlDao) GetRawTrade(date time.Time) (model.RawTrade, error) {
-	raw := model.RawTrade{}
-	err := dao.db.Table(raw.TableName()).Where("date = ?", date).Take(&raw).Error
-	if err != nil {
-		return model.RawTrade{}, err
-	}
-	return raw, nil
-}
-
-func (dao MysqlDao) InsertOpen(open model.Open) error {
-	err := dao.db.Create(open).Error
-	if err != nil && isNotDuplicateEntryErr(err) {
-		return err
-	}
-	return nil
-}
-
-func (dao MysqlDao) InsertRawTrade(raw model.RawTrade) error {
-	err := dao.db.Create(raw).Error
-	if err != nil && isNotDuplicateEntryErr(err) {
-		return err
-	}
-	return nil
-}
-
-func (dao MysqlDao) InsertStockList(info model.StockListUnit) error {
-	err := dao.db.Create(info).Error
-	if err != nil && isNotDuplicateEntryErr(err) {
-		return err
-	}
-	return nil
-}
-
-func (dao MysqlDao) InsertStock(stock model.Stock) error {
-	table := stock.GetTableName()
-	dao.Migrate(table, stock)
-
-	err := dao.db.Table(table).Create(stock).Error
-	if err != nil && isNotDuplicateEntryErr(err) {
-		return err
-	}
-	return nil
+	return dao.db
 }
 
 func isNotDuplicateEntryErr(err error) bool {

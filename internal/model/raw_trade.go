@@ -68,7 +68,7 @@ type RawTradeData struct {
 	Notes     []string        `json:"notes,omitempty"`
 }
 
-func (raw *RawTradeData) StockData() [][]string {
+func (raw *RawTradeData) TradeData() [][]string {
 	// data8: before 2011/7/31
 	// data9: '2006/09/29' and after 2011/7/31
 	if len(raw.Data9) > len(raw.Data8) {
@@ -78,15 +78,15 @@ func (raw *RawTradeData) StockData() [][]string {
 }
 
 // [0:證券代號 1:證券名稱 2:成交股數 3:成交筆數 4:成交金額 5:開盤價 6:最高價 7:最低價 8:收盤價 9:漲跌(+/-) 10:漲跌價差 11:最後揭示買價 12:最後揭示買量 13:最後揭示賣價 14:最後揭示賣量 15:本益比]
-func (raw *RawTradeData) ParseStock() []Stock {
-	sd := make([]Stock, 0, len(raw.StockData()))
-	for _, s := range raw.StockData() {
+func (raw *RawTradeData) ParseTrade() []Trade {
+	sd := make([]Trade, 0, len(raw.TradeData()))
+	for _, s := range raw.TradeData() {
 		symbol := parseSymbol(s[9])
 		grade := s[10]
 		if symbol != " " {
 			grade = symbol + grade
 		}
-		sd = append(sd, Stock{
+		sd = append(sd, Trade{
 			Date:         raw.Date,
 			ID:           s[0],
 			Name:         s[1],
