@@ -7,11 +7,4 @@ mysql:
   port: 3306
   database: "twss"
   log.level: "info"
-
-mongo:
-  username: "local"
-  password: "local"
-  host: "localhost"
-  port: 27017
-  database: "twss"
   
