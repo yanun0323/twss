@@ -30,8 +30,8 @@ func Run() {
 	switch mode {
 	case "check":
 		RunCheck(svc)
-	case "check_repair":
-		RunCheckRepair(svc)
+	case "repair":
+		RunRepair(svc)
 	case "job":
 		RunJobOnce(svc)
 	case "debug":
@@ -53,18 +53,21 @@ func RunServer(ctx context.Context, svc service.Service) {
 }
 
 func RunCheck(svc service.Service) {
-	svc.CheckTradeRaw(false)
-	svc.CheckConverter(false)
+	svc.CheckRaw(false, service.CheckRawTrade)
+	svc.CheckRaw(false, service.CheckRawEps)
+	svc.CheckData(false, service.CheckTrade)
 }
 
-func RunCheckRepair(svc service.Service) {
-	svc.CheckTradeRaw(true)
-	svc.CheckConverter(true)
+func RunRepair(svc service.Service) {
+	svc.CheckRaw(true, service.CheckRawTrade)
+	svc.CheckRaw(true, service.CheckRawEps)
+	svc.CheckData(true, service.CheckTrade)
 }
 
 func RunJobOnce(svc service.Service) {
-	svc.CrawlRawTrade()
-	svc.ConvertRawTrade()
+	svc.CrawlRaw(service.CrawlEps)
+	svc.CrawlRaw(service.CrawlTrade)
+	svc.ConvertRaw(service.ConvertRawTrade)
 }
 
 func RunDebug(svc service.Service) {

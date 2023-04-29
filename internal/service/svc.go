@@ -10,18 +10,18 @@ import (
 )
 
 type Service struct {
-	ctx      context.Context
-	l        *logs.Logger
-	repo     domain.Repository
-	stockMap *sync.Map
+	Ctx      context.Context
+	Log      *logs.Logger
+	Repo     domain.Repository
+	StockMap *sync.Map
 }
 
 func New(ctx context.Context, repo domain.Repository) (Service, error) {
 	svc := Service{
-		ctx:      ctx,
-		l:        logs.Get(ctx),
-		repo:     repo,
-		stockMap: &sync.Map{},
+		Ctx:      ctx,
+		Log:      logs.Get(ctx),
+		Repo:     repo,
+		StockMap: &sync.Map{},
 	}
 
 	err := svc.loadStockMap()
@@ -33,27 +33,27 @@ func New(ctx context.Context, repo domain.Repository) (Service, error) {
 }
 
 func (svc *Service) loadStockMap() error {
-	stocks, err := svc.repo.ListStocks(svc.ctx)
+	stocks, err := svc.Repo.ListStocks(svc.Ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, stock := range stocks {
-		svc.stockMap.Store(stock.ID, stock)
+		svc.StockMap.Store(stock.ID, stock)
 	}
 	return nil
 }
 
 func (svc *Service) storeStockMap() error {
-	return svc.repo.Tx(svc.ctx, func(txCtx context.Context) error {
+	return svc.Repo.Tx(svc.Ctx, func(txCtx context.Context) error {
 		var err error
-		svc.stockMap.Range(func(key, value any) bool {
+		svc.StockMap.Range(func(key, value any) bool {
 			stock, ok := value.(model.Stock)
 			if !ok {
 				return false
 			}
 
-			err = svc.repo.InsertStock(txCtx, stock)
+			err = svc.Repo.InsertStock(txCtx, stock)
 			return err == nil
 		})
 

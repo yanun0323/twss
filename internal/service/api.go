@@ -11,18 +11,18 @@ import (
 func (svc Service) TradeRawAPI(c echo.Context) error {
 	d := c.Param("date")
 	date, err := time.Parse("20060102", d)
-	svc.l.Debug(date)
+	svc.Log.Debug(date)
 	if err != nil {
-		svc.l.Errorf("[%s] parse date '%s' , %+v", c.RealIP(), d, err)
+		svc.Log.Errorf("[%s] parse date '%s' , %+v", c.RealIP(), d, err)
 		return c.JSON(http.StatusBadRequest, util.NewErrorResponse("invalid date format", err))
 	}
 
-	raw, err := svc.repo.GetRawTrade(svc.ctx, date)
+	raw, err := svc.Repo.GetRawTrade(svc.Ctx, date)
 	if err != nil {
-		svc.l.Errorf("[%s] get trade raw , %+v", c.RealIP(), err)
+		svc.Log.Errorf("[%s] get trade raw , %+v", c.RealIP(), err)
 		return c.JSON(http.StatusInternalServerError, util.NewErrorResponse("internal error", err))
 	}
 
-	svc.l.Infof("[%s] get trade raw succeed", c.RealIP())
+	svc.Log.Infof("[%s] get trade raw succeed", c.RealIP())
 	return c.JSON(http.StatusOK, util.NewDataResponse("get trade raw data succeed", string(raw.Body)))
 }

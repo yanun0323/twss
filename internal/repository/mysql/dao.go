@@ -8,8 +8,9 @@ import (
 	"stocker/internal/model"
 	"time"
 
+	"errors"
+
 	"github.com/go-sql-driver/mysql"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/yanun0323/pkg/logs"
 	sql "gorm.io/driver/mysql"
@@ -22,10 +23,7 @@ const (
 	_RECONNECT_TIME_INTERVAL = 5 * time.Second
 )
 
-var (
-	_defaultStartPreviousDate = time.Date(2004, time.February, 10, 0, 0, 0, 0, time.UTC)
-	_txKey                    = struct{}{}
-)
+type txKey struct{}
 
 type MysqlDao struct {
 	db  *gorm.DB
@@ -44,6 +42,10 @@ func New(ctx context.Context) MysqlDao {
 func connectDB(ctx context.Context) *gorm.DB {
 	l := logs.Get(ctx)
 	loggers := logger.Default
+	logLevel := logger.Silent
+	if viper.GetString("log.level") == "debug" {
+		logLevel = logger.Info
+	}
 	if os.Getenv("MODE") != "debug" {
 		loggers = logger.New(
 			log.New(os.Stdout, "\r\n", log.LstdFlags),
@@ -51,6 +53,7 @@ func connectDB(ctx context.Context) *gorm.DB {
 				SlowThreshold:             time.Second,
 				IgnoreRecordNotFoundError: true,
 				Colorful:                  true,
+				LogLevel:                  logLevel,
 			},
 		)
 	}
@@ -106,31 +109,35 @@ func (dao MysqlDao) Debug(ctx context.Context) *gorm.DB {
 
 func (dao MysqlDao) Tx(ctx context.Context, fc func(txCtx context.Context) error) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
-		_, ok := ctx.Value(_txKey).(*gorm.DB)
+		_, ok := ctx.Value(txKey{}).(*gorm.DB)
 		if ok {
 			return errors.New("transaction already exist")
 		}
 
-		txCtx := context.WithValue(ctx, _txKey, tx)
+		txCtx := context.WithValue(ctx, txKey{}, tx)
 		return fc(txCtx)
 	})
 }
 
-func (dao MysqlDao) IsErrRecordNotFound(err error) bool {
-	return errors.Is(gorm.ErrRecordNotFound, err)
+func (dao MysqlDao) ErrNotFound() error {
+	return gorm.ErrRecordNotFound
 }
 
 func (dao MysqlDao) GetDefaultStartDate() (time.Time, error) {
-	return _defaultStartPreviousDate.Add(24 * time.Hour), nil
+	return _TradeBeginPrevDate.Add(24 * time.Hour), nil
 }
 
 func (dao MysqlDao) GetDriver(ctx context.Context) *gorm.DB {
-	db, ok := ctx.Value(_txKey).(*gorm.DB)
+	db, ok := ctx.Value(txKey{}).(*gorm.DB)
 	if ok {
 		return db
 	}
 
 	return dao.db
+}
+
+func isNotFound(err error) bool {
+	return errors.Is(gorm.ErrRecordNotFound, err)
 }
 
 func isNotDuplicateEntryErr(err error) bool {

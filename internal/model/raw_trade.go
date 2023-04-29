@@ -24,7 +24,7 @@ func (RawTrade) TableName() string {
 	return "raw_trade"
 }
 
-func (raw RawTrade) GetData() (RawTradeData, error) {
+func (raw RawTrade) GetData() (interface{}, error) {
 	data := RawTradeData{}
 	if err := json.Unmarshal([]byte(raw.Body), &data); err != nil {
 		return RawTradeData{}, err
@@ -78,8 +78,8 @@ func (raw *RawTradeData) TradeData() [][]string {
 }
 
 // [0:證券代號 1:證券名稱 2:成交股數 3:成交筆數 4:成交金額 5:開盤價 6:最高價 7:最低價 8:收盤價 9:漲跌(+/-) 10:漲跌價差 11:最後揭示買價 12:最後揭示買量 13:最後揭示賣價 14:最後揭示賣量 15:本益比]
-func (raw *RawTradeData) ParseTrade() []Trade {
-	sd := make([]Trade, 0, len(raw.TradeData()))
+func (raw *RawTradeData) Parse() []interface{} {
+	sd := make([]interface{}, 0, len(raw.TradeData()))
 	for _, s := range raw.TradeData() {
 		symbol := parseSymbol(s[9])
 		grade := s[10]

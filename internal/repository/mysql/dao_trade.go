@@ -6,9 +6,14 @@ import (
 	"time"
 )
 
-func (dao MysqlDao) CheckTrade(ctx context.Context, date time.Time) error {
+func (dao MysqlDao) IsTradeExist(ctx context.Context, date time.Time) (bool, error) {
 	table := model.Trade{ID: "2330"}.GetTableName()
-	return dao.GetDriver(ctx).Table(table).Where("date = ?", date).Error
+	var count int64
+	err := dao.GetDriver(ctx).Table(table).Where("date = ?", date).Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count != 0, nil
 }
 
 func (dao MysqlDao) InsertTrade(ctx context.Context, trade model.Trade) error {
