@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"stocker/internal/domain"
 	"stocker/internal/model"
 	"stocker/internal/util"
 	"sync"
@@ -17,7 +16,7 @@ type ConvertRawOption struct {
 	TimeOffset           time.Duration
 	StoreMapAfterTask    bool
 	GetLastConvertedDate func(Service) (time.Time, error)
-	GetRaw               func(Service, time.Time) (domain.Raw, error)
+	GetRaw               func(Service, time.Time) (model.Raw, error)
 	InsertDataDate       func(Service, time.Time, bool) error
 	HandleData           func(Service, context.Context, interface{}) error
 }
@@ -30,7 +29,7 @@ var ConvertRawTrade = ConvertRawOption{
 	GetLastConvertedDate: func(svc Service) (time.Time, error) {
 		return svc.Repo.GetLastTradeDate(svc.Ctx)
 	},
-	GetRaw: func(svc Service, date time.Time) (domain.Raw, error) {
+	GetRaw: func(svc Service, date time.Time) (model.Raw, error) {
 		return svc.Repo.GetRawTrade(svc.Ctx, date)
 	},
 	InsertDataDate: func(svc Service, date time.Time, isOpen bool) error {
@@ -68,6 +67,36 @@ var ConvertRawTrade = ConvertRawOption{
 	},
 }
 
+// ConvertRawFinance 轉換每日財報指標資料
+var ConvertRawFinance = ConvertRawOption{
+	Name:              "convert_finance",
+	TimeOffset:        -19 * time.Hour, /* turn every 19:00 into 00:00 to convert data after 19:00 every day */
+	StoreMapAfterTask: false,
+	GetLastConvertedDate: func(svc Service) (time.Time, error) {
+		return svc.Repo.GetLastFinanceDate(svc.Ctx)
+	},
+	GetRaw: func(svc Service, date time.Time) (model.Raw, error) {
+		return svc.Repo.GetRawFinance(svc.Ctx, date)
+	},
+	InsertDataDate: func(svc Service, date time.Time, isOpen bool) error {
+		return svc.Repo.InsertFinanceDate(svc.Ctx, model.FinanceDate{
+			Date: date,
+		})
+	},
+	HandleData: func(svc Service, txCtx context.Context, elem interface{}) error {
+		finance, ok := elem.(model.Finance)
+		if !ok {
+			return errors.New("invalid finance type")
+		}
+
+		if err := svc.Repo.InsertFinance(txCtx, finance); err != nil {
+			return errors.Errorf("insert finance, err: %+v", err)
+		}
+
+		return nil
+	},
+}
+
 // ConvertRaw 轉換每日爬蟲資料
 func (svc Service) ConvertRaw(opt ConvertRawOption) {
 	svc.Log = svc.Log.WithField("service", opt.Name)
@@ -78,7 +107,9 @@ func (svc Service) ConvertRaw(opt ConvertRawOption) {
 		return
 	}
 	date = date.Add(24 * time.Hour)
-	now := time.Now().Local().Add(opt.TimeOffset)
+	now := time.Now().In(time.UTC).Add(opt.TimeOffset)
+	svc.Log.Debugf("start convert date: %s", date)
+	svc.Log.Debugf("start convert now: %s", now)
 
 	wp := util.NewWorkerPool(fmt.Sprintf("convert raw %s", opt.Name), 15)
 	wp.Run()
@@ -122,13 +153,12 @@ func (svc Service) convertRaw(date time.Time, opt ConvertRawOption) error {
 			return errors.Errorf("get data, err: %+v", err)
 		}
 
-		d, ok := data.(domain.RawData)
+		d, ok := data.(model.RawData)
 		if !ok {
 			return errors.New("invalid raw data type")
 		}
 
-		isOpen := d.IsOK()
-		if !isOpen {
+		if !d.IsOK() {
 			if err := opt.InsertDataDate(svc, date, false); err != nil {
 				return errors.Errorf("insert close data date, err: %+v", err)
 			}

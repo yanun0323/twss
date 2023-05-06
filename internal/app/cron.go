@@ -14,9 +14,10 @@ func CronJob(ctx context.Context, svc service.Service) {
 	{
 		interval := "TZ=Asia/Taipei 30 0 * * * *"
 		_, err := c.AddFunc(interval, func() {
-			svc.CrawlRaw(service.CrawlEps)
+			svc.CrawlRaw(service.CrawlFinance)
 			svc.CrawlRaw(service.CrawlTrade)
 			svc.ConvertRaw(service.ConvertRawTrade)
+			svc.ConvertRaw(service.ConvertRawFinance)
 		})
 		if err != nil {
 			l.Errorf("add trade raw data crawl cron job , %+v", err)

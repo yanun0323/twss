@@ -2,7 +2,7 @@ package service
 
 import (
 	"errors"
-	"stocker/internal/domain"
+	"stocker/internal/model"
 	"stocker/internal/util"
 	"time"
 )
@@ -12,10 +12,11 @@ type CheckDataOption struct {
 
 	Name         string
 	GetBeginDate func(Service) (time.Time, error)
-	GetDataDate  func(Service, time.Time) (domain.DataDate, error)
+	GetDataDate  func(Service, time.Time) (model.DataDate, error)
 	IsDataExist  func(Service, time.Time) (bool, error)
 }
 
+// CheckTrade 檢查 Trade 資料是否有缺漏
 var CheckTrade = CheckDataOption{
 	ConvertOpt: ConvertRawTrade,
 
@@ -23,11 +24,27 @@ var CheckTrade = CheckDataOption{
 	GetBeginDate: func(svc Service) (time.Time, error) {
 		return svc.Repo.GetRawTradeDate(svc.Ctx, true)
 	},
-	GetDataDate: func(svc Service, date time.Time) (domain.DataDate, error) {
+	GetDataDate: func(svc Service, date time.Time) (model.DataDate, error) {
 		return svc.Repo.GetTradeDate(svc.Ctx, date)
 	},
 	IsDataExist: func(svc Service, date time.Time) (bool, error) {
 		return svc.Repo.IsTradeExist(svc.Ctx, date)
+	},
+}
+
+// CheckFinance 檢查 Finance 資料是否有缺漏
+var CheckFinance = CheckDataOption{
+	ConvertOpt: ConvertRawFinance,
+
+	Name: "check_finance",
+	GetBeginDate: func(svc Service) (time.Time, error) {
+		return svc.Repo.GetRawFinanceDate(svc.Ctx, true)
+	},
+	GetDataDate: func(svc Service, date time.Time) (model.DataDate, error) {
+		return svc.Repo.GetFinanceDate(svc.Ctx, date)
+	},
+	IsDataExist: func(svc Service, date time.Time) (bool, error) {
+		return svc.Repo.IsFinanceExist(svc.Ctx, date)
 	},
 }
 

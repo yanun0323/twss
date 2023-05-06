@@ -93,7 +93,8 @@ func connectDB(ctx context.Context) *gorm.DB {
 func (dao MysqlDao) AutoMigrate() {
 	_ = dao.db.AutoMigrate(
 		model.TradeDate{},
-		model.RawEps{},
+		model.FinanceDate{},
+		model.RawFinance{},
 		model.RawTrade{},
 		model.Stock{},
 	)

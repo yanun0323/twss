@@ -24,7 +24,7 @@ func (RawTrade) TableName() string {
 	return "raw_trade"
 }
 
-func (raw RawTrade) GetData() (interface{}, error) {
+func (raw RawTrade) GetData() (RawData, error) {
 	data := RawTradeData{}
 	if err := json.Unmarshal([]byte(raw.Body), &data); err != nil {
 		return RawTradeData{}, err
@@ -68,7 +68,11 @@ type RawTradeData struct {
 	Notes     []string        `json:"notes,omitempty"`
 }
 
-func (raw *RawTradeData) TradeData() [][]string {
+func (raw RawTradeData) IsOK() bool {
+	return raw.Stat == "OK" && len(raw.Data()) != 0
+}
+
+func (raw RawTradeData) Data() [][]string {
 	// data8: before 2011/7/31
 	// data9: '2006/09/29' and after 2011/7/31
 	if len(raw.Data9) > len(raw.Data8) {
@@ -78,9 +82,9 @@ func (raw *RawTradeData) TradeData() [][]string {
 }
 
 // [0:證券代號 1:證券名稱 2:成交股數 3:成交筆數 4:成交金額 5:開盤價 6:最高價 7:最低價 8:收盤價 9:漲跌(+/-) 10:漲跌價差 11:最後揭示買價 12:最後揭示買量 13:最後揭示賣價 14:最後揭示賣量 15:本益比]
-func (raw *RawTradeData) Parse() []interface{} {
-	sd := make([]interface{}, 0, len(raw.TradeData()))
-	for _, s := range raw.TradeData() {
+func (raw RawTradeData) Parse() []interface{} {
+	sd := make([]interface{}, 0, len(raw.Data()))
+	for _, s := range raw.Data() {
 		symbol := parseSymbol(s[9])
 		grade := s[10]
 		if symbol != " " {
@@ -100,7 +104,7 @@ func (raw *RawTradeData) Parse() []interface{} {
 			TradeSymbol:  symbol,
 			TradeGrade:   util.Decimal(grade),
 			Percentage:   calculatePercentage(grade, s[5]),
-			Limit:        calculateLimit(s[8], grade),
+			Limit:        calculateLimit(s[8], grade), // FIXME: 漲跌停需要重新計算
 		})
 	}
 	return sd

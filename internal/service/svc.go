@@ -9,6 +9,10 @@ import (
 	"github.com/yanun0323/pkg/logs"
 )
 
+var (
+	_dayUnix int64 = 86400
+)
+
 type Service struct {
 	Ctx      context.Context
 	Log      *logs.Logger

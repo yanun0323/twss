@@ -33,6 +33,6 @@ func (svc Service) debugTradeRawData(dateStr string) {
 
 	svc.Log.Debugf("%+v", d.Date)
 	svc.Log.Debugf("%+v", d.Fields8)
-	svc.Log.Debugf("%+v", d.TradeData()[0])
+	svc.Log.Debugf("%+v", d.Data()[0])
 	svc.Log.Debugf("%+v", d.Parse()[0])
 }

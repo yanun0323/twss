@@ -12,8 +12,8 @@ type Repository interface {
 	CommonRepository
 	StockRepository
 	RawRepository
-	TradeDateRepository
 	TradeRepository
+	FinanceRepository
 
 	DebugRepository
 }
@@ -35,22 +35,32 @@ type RawRepository interface {
 	GetRawTrade(context.Context, time.Time) (model.RawTrade, error)
 	InsertRawTrade(context.Context, model.RawTrade) error
 
-	ListRawEps(ctx context.Context, from, to time.Time) ([]model.RawEps, error)
-	GetRawEpsDate(ctx context.Context, begin bool) (time.Time, error)
-	GetRawEps(context.Context, time.Time) (model.RawEps, error)
-	InsertRawEps(context.Context, model.RawEps) error
+	ListRawFinance(ctx context.Context, from, to time.Time) ([]model.RawFinance, error)
+	GetRawFinanceDate(ctx context.Context, begin bool) (time.Time, error)
+	GetRawFinance(context.Context, time.Time) (model.RawFinance, error)
+	InsertRawFinance(context.Context, model.RawFinance) error
 }
 
 type TradeRepository interface {
 	IsTradeExist(context.Context, time.Time) (bool, error)
+	ListTrade(ctx context.Context, id string, from, to time.Time) ([]model.Trade, error)
+	GetTrade(ctx context.Context, id string, date time.Time) (model.Trade, error)
 	InsertTrade(context.Context, model.Trade) error
-}
 
-type TradeDateRepository interface {
 	IsTradeDateExist(context.Context, time.Time) (bool, error)
 	GetTradeDate(context.Context, time.Time) (model.TradeDate, error)
 	GetLastTradeDate(context.Context) (time.Time, error)
 	InsertTradeDate(context.Context, model.TradeDate) error
+}
+
+type FinanceRepository interface {
+	IsFinanceExist(context.Context, time.Time) (bool, error)
+	InsertFinance(context.Context, model.Finance) error
+
+	IsFinanceDateExist(context.Context, time.Time) (bool, error)
+	GetFinanceDate(context.Context, time.Time) (model.FinanceDate, error)
+	GetLastFinanceDate(context.Context) (time.Time, error)
+	InsertFinanceDate(context.Context, model.FinanceDate) error
 }
 
 type DebugRepository interface {

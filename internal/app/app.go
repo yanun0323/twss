@@ -54,20 +54,23 @@ func RunServer(ctx context.Context, svc service.Service) {
 
 func RunCheck(svc service.Service) {
 	svc.CheckRaw(false, service.CheckRawTrade)
-	svc.CheckRaw(false, service.CheckRawEps)
+	svc.CheckRaw(false, service.CheckRawFinance)
 	svc.CheckData(false, service.CheckTrade)
+	svc.CheckData(false, service.CheckFinance)
 }
 
 func RunRepair(svc service.Service) {
 	svc.CheckRaw(true, service.CheckRawTrade)
-	svc.CheckRaw(true, service.CheckRawEps)
+	svc.CheckRaw(true, service.CheckRawFinance)
 	svc.CheckData(true, service.CheckTrade)
+	svc.CheckData(true, service.CheckFinance)
 }
 
 func RunJobOnce(svc service.Service) {
-	svc.CrawlRaw(service.CrawlEps)
+	svc.CrawlRaw(service.CrawlFinance)
 	svc.CrawlRaw(service.CrawlTrade)
 	svc.ConvertRaw(service.ConvertRawTrade)
+	svc.ConvertRaw(service.ConvertRawFinance)
 }
 
 func RunDebug(svc service.Service) {

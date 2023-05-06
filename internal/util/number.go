@@ -2,6 +2,7 @@ package util
 
 import (
 	"regexp"
+	"strconv"
 
 	"github.com/shopspring/decimal"
 )
@@ -15,4 +16,12 @@ func Decimal(s string) decimal.Decimal {
 		return decimal.Zero
 	}
 	return d
+}
+
+func Int(s string) int {
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0
+	}
+	return i
 }

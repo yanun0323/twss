@@ -14,7 +14,7 @@ type CheckRawOption struct {
 	GetRaw       func(Service, time.Time) (interface{}, error)
 }
 
-// CheckRawTrade 檢查 TradeRaw 資料是否有缺漏
+// CheckRawTrade 檢查 RawTrade 資料是否有缺漏
 var CheckRawTrade = CheckRawOption{
 	CrawlOpt: CrawlTrade,
 
@@ -27,16 +27,16 @@ var CheckRawTrade = CheckRawOption{
 	},
 }
 
-// CheckRawEps 檢查 TradeRaw 資料是否有缺漏
-var CheckRawEps = CheckRawOption{
-	CrawlOpt: CrawlEps,
+// CheckRawFinance 檢查 RawFinance 資料是否有缺漏
+var CheckRawFinance = CheckRawOption{
+	CrawlOpt: CrawlFinance,
 
-	Name: "check_eps",
+	Name: "check_finance",
 	GetBeginDate: func(svc Service) (time.Time, error) {
-		return svc.Repo.GetRawEpsDate(svc.Ctx, true)
+		return svc.Repo.GetRawFinanceDate(svc.Ctx, true)
 	},
 	GetRaw: func(svc Service, date time.Time) (interface{}, error) {
-		return svc.Repo.GetRawEps(svc.Ctx, date)
+		return svc.Repo.GetRawFinance(svc.Ctx, date)
 	},
 }
 
@@ -66,7 +66,7 @@ func (svc Service) CheckRaw(repair bool, opt CheckRawOption) {
 				continue
 			}
 			svc.Log.Infof("repairing %s raw", logDate)
-			err := svc.crawlRaw(date, opt.CrawlOpt)
+			err := svc.crawlRaw(svc.Ctx, date, opt.CrawlOpt)
 			if err != nil {
 				svc.Log.Errorf("%s, crawl raw, err: %+v", logDate, err)
 			}
